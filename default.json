@@ -11,6 +11,10 @@
   "prConcurrentLimit": 10,
   "prHourlyLimit": 4,
   "labels": ["dependencies"],
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "osvVulnerabilityAlerts": false,
   "packageRules": [
     {
       "description": "FerrLabs own packages — trust them, merge without delay",
