@@ -12,9 +12,15 @@
   "prHourlyLimit": 4,
   "labels": ["dependencies"],
   "vulnerabilityAlerts": {
-    "enabled": false
+    "enabled": true,
+    "labels": ["security"],
+    "automerge": true,
+    "automergeType": "pr",
+    "automergeStrategy": "squash",
+    "minimumReleaseAge": "0",
+    "prPriority": 10
   },
-  "osvVulnerabilityAlerts": false,
+  "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
       "description": "FerrLabs own packages — trust them, merge without delay",
