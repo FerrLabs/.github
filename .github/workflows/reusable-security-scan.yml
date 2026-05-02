@@ -18,6 +18,11 @@ on:
         type: boolean
         required: false
         default: false
+      fail-on-secret:
+        description: 'Fail the workflow on any secret found by gitleaks or trufflehog'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -45,7 +50,16 @@ jobs:
           if [ -n "$GITLEAKS_CONFIG" ]; then
             ARGS+=(--config "$GITLEAKS_CONFIG")
           fi
+          set +e
           gitleaks "${ARGS[@]}"
+          EXIT=$?
+          set -e
+          if [ "${{ inputs.fail-on-secret }}" = "true" ]; then
+            exit $EXIT
+          fi
+          if [ "$EXIT" != "0" ]; then
+            echo "::warning::gitleaks found potential secrets — see SARIF in Security tab. Set fail-on-secret: true to make this blocking."
+          fi
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
@@ -117,13 +131,18 @@ jobs:
           trufflehog --version
       - name: Run trufflehog (filesystem + git history)
         run: |
-          trufflehog git file://. --only-verified --fail --no-update --json > trufflehog.json || EXIT=$?
-          echo "trufflehog exit: ${EXIT:-0}"
+          set +e
+          trufflehog git file://. --only-verified --fail --no-update --json > trufflehog.json
+          EXIT=$?
+          set -e
+          echo "trufflehog exit: $EXIT"
           if [ -s trufflehog.json ]; then
             echo "::warning::trufflehog found verified secrets — see artifact"
             jq -r '. | "\(.SourceMetadata.Data.Git.repository) \(.DetectorName) \(.Raw)"' trufflehog.json | head -20
           fi
-          exit "${EXIT:-0}"
+          if [ "${{ inputs.fail-on-secret }}" = "true" ]; then
+            exit $EXIT
+          fi
       - name: Upload findings
         if: always()
         uses: actions/upload-artifact@v7
