@@ -12,20 +12,20 @@ GitHub-discovered workflow templates. They appear under **Actions → New workfl
 | [`ci-go`](ci-go.yml) | gofmt, vet, golangci-lint, race tests, govulncheck, build | Any Go module (operators, services). |
 | [`codeql`](codeql.yml) | GitHub CodeQL static analysis (security-and-quality queries) | All TS/JS/Go/Python repos (CodeQL doesn't support Rust yet). |
 | [`scorecard`](scorecard.yml) | OpenSSF Scorecard supply-chain risk score | All public repos and key private repos. |
-| [`security-scan`](security-scan.yml) | Reusable: gitleaks (secrets) + osv-scanner (CVE) + trufflehog (deep history) | Every repo — call the shared workflow from `FerrLabs/Infra`. |
+| [`security-scan`](security-scan.yml) | Reusable: gitleaks (secrets) + osv-scanner (CVE) + trufflehog (deep history) | Every repo — call the shared workflow from `FerrLabs/.github`. |
 | [`pr-title`](pr-title.yml) | Conventional Commits validation on PR titles | Every repo (mandatory because we squash-merge). |
 | [`release`](release.yml) | Auto-release on push to main with `FerrLabs/FerrFlow@v4` | Repos that ship semver releases. |
 | [`docker-publish`](docker-publish.yml) | Reusable: hadolint + multi-arch build + Trivy + cosign keyless + SBOM | Repos that publish a container image. |
 
 ## Reusable workflows
 
-The `security-scan` and `docker-publish` templates **call** reusable workflows hosted in `FerrLabs/Infra`:
+The `security-scan` and `docker-publish` templates **call** reusable workflows hosted in `FerrLabs/.github`:
 
-- `FerrLabs/Infra/.github/workflows/reusable-security-scan.yml@main`
-- `FerrLabs/Infra/.github/workflows/reusable-docker-build.yml@main`
-- `FerrLabs/Infra/.github/workflows/reusable-release-rust.yml@main` (cross-compile binaries → attest → upload to release → optional crates.io + Docker)
+- `FerrLabs/.github/.github/workflows/reusable-security-scan.yml@main`
+- `FerrLabs/.github/.github/workflows/reusable-docker-build.yml@main`
+- `FerrLabs/.github/.github/workflows/reusable-release-rust.yml@main` (cross-compile binaries → attest → upload to release → optional crates.io + Docker)
 
-Updating the source workflow in `Infra` propagates to every consumer at the next run.
+Hosting the reusables in the **public** `.github` repo (rather than the private `Infra` repo) is required for OSS repos like FerrFlow to call them — GitHub forbids public→private reusable calls. Updating the source workflow propagates to every consumer at the next run.
 
 ## Conventions
 

@@ -1,6 +1,6 @@
 {
   "name": "FerrLabs — Docker publish (hadolint + Trivy + cosign + SBOM)",
-  "description": "Calls the shared FerrLabs/Infra reusable workflow to lint the Dockerfile (hadolint), build a multi-arch image, scan for CVE (Trivy), sign with keyless cosign, and attach a CycloneDX SBOM.",
+  "description": "Calls the shared FerrLabs/.github reusable workflow to lint the Dockerfile (hadolint), build a multi-arch image, scan for CVE (Trivy), sign with keyless cosign, and attach a CycloneDX SBOM.",
   "iconName": "ferrlabs",
   "categories": ["Deployment", "Security"],
   "filePatterns": ["Dockerfile$"]
