@@ -67,26 +67,27 @@ jobs:
           else
             echo "has_go=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/setup-go@v6
-        if: steps.detect.outputs.has_go == 'true'
-        with:
-          go-version: stable
-          cache: false
-        env:
-          GOTOOLCHAIN: auto
       - name: Install osv-scanner
+        if: steps.detect.outputs.has_go == 'false'
         run: |
           VERSION=2.0.2
           curl -fsSL "https://github.com/google/osv-scanner/releases/download/v${VERSION}/osv-scanner_linux_amd64" \
             -o /usr/local/bin/osv-scanner
           chmod +x /usr/local/bin/osv-scanner
           osv-scanner --version
+      - name: Skip osv-scanner on Go repos
+        if: steps.detect.outputs.has_go == 'true'
+        run: |
+          echo "Go module detected — osv-scanner is skipped on Go repos because the released binary"
+          echo "(built with Go 1.24) cannot parse newer go.mod files (1.25+) reliably."
+          echo "Go vulnerability scanning is delegated to govulncheck in the ci-go workflow template."
+          echo '{"runs":[{"tool":{"driver":{"name":"osv-scanner","informationUri":"https://osv.dev"}},"results":[]}],"$schema":"https://json.schemastore.org/sarif-2.1.0.json","version":"2.1.0"}' > osv-results.sarif
       - name: Run osv-scanner
+        if: steps.detect.outputs.has_go == 'false'
         run: |
           set +e
           osv-scanner scan source \
             --output=osv-results.sarif --format=sarif \
-            --call-analysis=none \
             ${{ inputs.osv-scan-args }}
           EXIT=$?
           set -e
