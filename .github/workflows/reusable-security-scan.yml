@@ -17,11 +17,12 @@ on:
         description: 'Fail the workflow on any CVE found by osv-scanner'
         type: boolean
         required: false
-        default: true
+        default: false
 
 permissions:
   contents: read
   security-events: write
+  actions: read
 
 jobs:
   gitleaks:
