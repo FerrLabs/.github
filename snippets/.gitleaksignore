@@ -1,0 +1,3 @@
+# gitleaks fingerprints to ignore (false positives, rotated test creds, …)
+# Format: <commit_sha>:<file>:<rule_id>:<line>
+# Add entries by running gitleaks once and copying the reported fingerprints.

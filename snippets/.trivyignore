@@ -1,0 +1,3 @@
+# Trivy vulnerability IDs to ignore (with a written-out reason).
+# Format: <CVE-id>  # exp:YYYY-MM-DD reason
+# The expiry date is enforced manually — re-evaluate ignored CVEs at every renewal.

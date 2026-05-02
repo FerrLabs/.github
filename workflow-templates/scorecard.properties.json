@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — OSSF Scorecard",
+  "description": "OpenSSF Scorecard supply-chain risk analysis. Publishes results to the public Scorecard API and uploads SARIF to GitHub code scanning.",
+  "iconName": "ferrlabs",
+  "categories": ["Security", "Supply chain"],
+  "filePatterns": [".*"]
+}

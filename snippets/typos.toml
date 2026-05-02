@@ -1,0 +1,20 @@
+[default]
+extend-ignore-identifiers-re = [
+  "[A-Z0-9]{40,}",
+]
+
+[files]
+extend-exclude = [
+  "**/*.lock",
+  "pnpm-lock.yaml",
+  "Cargo.lock",
+  "go.sum",
+  "**/dist/**",
+  "**/node_modules/**",
+  "**/target/**",
+  "**/fixtures-generated/**",
+  "**/coverage/**",
+]
+
+[default.extend-words]
+crate = "crate"

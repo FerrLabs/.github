@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — Release with FerrFlow",
+  "description": "Automatic semver release on push to main using FerrLabs/FerrFlow@v4 (conventional commits, version bump, tag, GitHub release, changelog).",
+  "iconName": "ferrlabs",
+  "categories": ["Deployment"],
+  "filePatterns": [".*"]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — CI Go",
+  "description": "gofmt, go vet, golangci-lint, race-enabled tests with coverage, govulncheck and build for Go projects.",
+  "iconName": "ferrlabs",
+  "categories": ["Continuous integration", "Go"],
+  "filePatterns": ["go\\.mod$"]
+}

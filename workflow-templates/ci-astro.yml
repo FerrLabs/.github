@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Check
+    runs-on: ferrlabs-k8s
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@ferrlabs'
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+      - name: Astro check
+        run: pnpm exec astro check
+      - name: Lint
+        run: pnpm lint
+      - name: Build
+        run: pnpm build
+      - name: Upload build artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: site-dist
+          path: dist/
+          retention-days: 1
+
+  i18n:
+    name: i18n parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@ferrlabs'
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+      - name: Check i18n parity (EN/FR)
+        run: pnpm run check:i18n
+        continue-on-error: true
+
+  lighthouse:
+    name: Lighthouse CI
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: site-dist
+          path: dist/
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Run Lighthouse
+        run: |
+          npm install -g @lhci/cli@0.14.x
+          lhci autorun --collect.staticDistDir=dist || true
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
