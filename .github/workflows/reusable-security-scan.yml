@@ -84,7 +84,10 @@ jobs:
       - name: Run osv-scanner
         run: |
           set +e
-          osv-scanner scan --output=osv-results.sarif --format=sarif ${{ inputs.osv-scan-args }}
+          osv-scanner scan source \
+            --output=osv-results.sarif --format=sarif \
+            --call-analysis=none \
+            ${{ inputs.osv-scan-args }}
           EXIT=$?
           set -e
           if [ "${{ inputs.fail-on-cve }}" = "true" ]; then
