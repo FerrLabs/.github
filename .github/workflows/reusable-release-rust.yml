@@ -1,0 +1,147 @@
+name: Reusable — Release Rust binary
+
+on:
+  workflow_call:
+    inputs:
+      bin-name:
+        description: 'Name of the binary (without extension)'
+        type: string
+        required: true
+      crate-publish:
+        description: 'Publish to crates.io'
+        type: boolean
+        required: false
+        default: false
+      docker-publish:
+        description: 'Build and publish a Docker image after the binaries'
+        type: boolean
+        required: false
+        default: false
+      docker-image-name:
+        description: 'Docker image name if docker-publish=true'
+        type: string
+        required: false
+        default: ''
+    secrets:
+      CARGO_REGISTRY_TOKEN:
+        required: false
+      FERRFLOW_TOKEN:
+        required: false
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  packages: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: ''
+            archive: tar.gz
+            arch_label: linux-x64
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: ''
+            archive: tar.gz
+            arch_label: linux-arm64
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            ext: ''
+            archive: tar.gz
+            arch_label: darwin-x64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            ext: ''
+            archive: tar.gz
+            arch_label: darwin-arm64
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            ext: '.exe'
+            archive: zip
+            arch_label: windows-x64
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cross (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          curl -fsSL --retry 6 --retry-delay 5 --retry-connrefused --retry-all-errors \
+            -o /tmp/cross.tar.gz \
+            https://github.com/cross-rs/cross/releases/latest/download/cross-x86_64-unknown-linux-musl.tar.gz
+          tar xz -C "$HOME/.cargo/bin" -f /tmp/cross.tar.gz
+      - name: Build (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: cross build --release --target ${{ matrix.target }}
+      - name: Build (macOS / Windows)
+        if: matrix.os != 'ubuntu-latest'
+        run: cargo build --release --target ${{ matrix.target }}
+      - name: Package (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          tar -czf ${{ inputs.bin-name }}-${{ matrix.arch_label }}.tar.gz \
+            -C target/${{ matrix.target }}/release ${{ inputs.bin-name }}${{ matrix.ext }}
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          Compress-Archive `
+            -Path target/${{ matrix.target }}/release/${{ inputs.bin-name }}${{ matrix.ext }} `
+            -DestinationPath ${{ inputs.bin-name }}-${{ matrix.arch_label }}.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.bin-name }}-${{ matrix.arch_label }}
+          path: ${{ inputs.bin-name }}-${{ matrix.arch_label }}.*
+
+  upload:
+    name: Attest + upload assets
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts/
+          pattern: ${{ inputs.bin-name }}-*
+          merge-multiple: true
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: artifacts/*
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.FERRFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          for file in artifacts/*; do
+            gh release upload "$TAG" "$file" --clobber
+          done
+
+  publish-crate:
+    name: Publish crates.io
+    needs: upload
+    if: inputs.crate-publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  publish-docker:
+    name: Publish Docker
+    needs: upload
+    if: inputs.docker-publish && inputs.docker-image-name != ''
+    uses: ./.github/workflows/reusable-docker-build.yml
+    with:
+      image-name: ${{ inputs.docker-image-name }}
+      tag: ${{ github.ref_name }}
+      context: .
+      dockerfile: Dockerfile
+    secrets: inherit

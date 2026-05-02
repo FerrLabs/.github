@@ -1,0 +1,159 @@
+name: Reusable — Docker build (lint, scan, sign, SBOM)
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: 'Full image name (e.g. ghcr.io/ferrlabs/foo)'
+        type: string
+        required: true
+      tag:
+        description: 'Image tag (e.g. v1.2.3 or commit sha)'
+        type: string
+        required: true
+      context:
+        description: 'Docker build context'
+        type: string
+        required: false
+        default: '.'
+      dockerfile:
+        description: 'Path to Dockerfile relative to context'
+        type: string
+        required: false
+        default: 'Dockerfile'
+      platforms:
+        description: 'Comma-separated build platforms'
+        type: string
+        required: false
+        default: 'linux/amd64,linux/arm64'
+      build-args:
+        description: 'Newline-separated build args (KEY=VALUE)'
+        type: string
+        required: false
+        default: ''
+      trivy-severity:
+        description: 'Trivy severities that fail the build'
+        type: string
+        required: false
+        default: 'CRITICAL,HIGH'
+      push:
+        description: 'Push the image to the registry'
+        type: boolean
+        required: false
+        default: true
+    outputs:
+      digest:
+        description: 'Image digest (sha256:...)'
+        value: ${{ jobs.build.outputs.digest }}
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+  security-events: write
+
+jobs:
+  hadolint:
+    name: hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ inputs.context }}/${{ inputs.dockerfile }}
+          failure-threshold: warning
+
+  build:
+    name: Build & push
+    needs: hadolint
+    runs-on: ferrlabs-k8s
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v4
+      - name: Login to GHCR
+        if: startsWith(inputs.image-name, 'ghcr.io/')
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        id: push
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.context }}/${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.push }}
+          provenance: mode=max
+          sbom: true
+          tags: |
+            ${{ inputs.image-name }}:${{ inputs.tag }}
+            ${{ inputs.image-name }}:latest
+          build-args: ${{ inputs.build-args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  trivy:
+    name: Trivy (CVE scan)
+    needs: build
+    if: inputs.push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ inputs.image-name }}:${{ inputs.tag }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: ${{ inputs.trivy-severity }}
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+  cosign:
+    name: cosign (sign + attest)
+    needs: [build, trivy]
+    if: inputs.push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: sigstore/cosign-installer@v3
+      - name: Login to GHCR
+        if: startsWith(inputs.image-name, 'ghcr.io/')
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sign image (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+        run: |
+          cosign sign --yes \
+            "${{ inputs.image-name }}@${{ needs.build.outputs.digest }}"
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ${{ inputs.image-name }}
+          subject-digest: ${{ needs.build.outputs.digest }}
+          push-to-registry: true
+
+  sbom:
+    name: SBOM (Syft → CycloneDX)
+    needs: build
+    if: inputs.push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anchore/sbom-action@v0
+        with:
+          image: ${{ inputs.image-name }}@${{ needs.build.outputs.digest }}
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+          upload-artifact: true
+          upload-release-assets: false
