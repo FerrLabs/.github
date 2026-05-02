@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — CI Astro Site",
+  "description": "Astro check, lint, build, i18n parity (EN/FR) and Lighthouse CI on PRs for FerrLabs marketing sites.",
+  "iconName": "ferrlabs",
+  "categories": ["Continuous integration", "JavaScript", "TypeScript"],
+  "filePatterns": ["astro\\.config\\.(mjs|ts|js)$"]
+}

@@ -1,0 +1,28 @@
+name: Docker publish
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag (defaults to commit sha)'
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    name: Build, scan, sign, publish
+    uses: FerrLabs/Infra/.github/workflows/reusable-docker-build.yml@main
+    with:
+      image-name: ghcr.io/ferrlabs/${{ github.event.repository.name }}
+      tag: ${{ inputs.tag || github.ref_name }}
+      context: .
+      dockerfile: Dockerfile
+      platforms: linux/amd64,linux/arm64
+    secrets: inherit

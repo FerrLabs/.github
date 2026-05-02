@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — CI Rust",
+  "description": "Format, clippy, tests, security audit (cargo-audit + cargo-deny + cargo-machete), typos, and coverage for Rust crates.",
+  "iconName": "ferrlabs",
+  "categories": ["Continuous integration", "Rust"],
+  "filePatterns": ["Cargo.toml$"]
+}

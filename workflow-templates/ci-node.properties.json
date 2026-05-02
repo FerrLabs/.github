@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — CI Node/TypeScript",
+  "description": "Typecheck, lint, test+coverage, build, plus quality checks (knip dead-code, madge cycles, pnpm audit) for Node/TypeScript packages.",
+  "iconName": "ferrlabs",
+  "categories": ["Continuous integration", "JavaScript", "TypeScript"],
+  "filePatterns": ["package\\.json$"]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — Security scan (gitleaks + OSV)",
+  "description": "Calls the shared FerrLabs/Infra reusable workflow that runs gitleaks (secret scanning) and osv-scanner (CVE scan across Rust/Node/Docker/Go) on push, PR and a daily schedule.",
+  "iconName": "ferrlabs",
+  "categories": ["Security"],
+  "filePatterns": [".*"]
+}

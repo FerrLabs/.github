@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — PR title (Conventional Commits)",
+  "description": "Validates PR titles against Conventional Commits (feat/fix/refactor/docs/chore/style/test/perf/ci/build). Required because PRs are squash-merged and the title becomes the commit message on main.",
+  "iconName": "ferrlabs",
+  "categories": ["Continuous integration"],
+  "filePatterns": [".*"]
+}
