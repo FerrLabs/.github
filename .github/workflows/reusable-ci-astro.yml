@@ -1,0 +1,165 @@
+name: Reusable — CI Astro Site
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Astro project root'
+        type: string
+        default: '.'
+      runner:
+        description: 'GitHub Actions runner label'
+        type: string
+        default: 'ferrlabs-k8s'
+      node-version:
+        type: string
+        default: '24'
+      pnpm-version:
+        type: string
+        default: '10'
+      install-args:
+        type: string
+        default: '--frozen-lockfile'
+      registry-url:
+        type: string
+        default: 'https://npm.pkg.github.com'
+      registry-scope:
+        type: string
+        default: '@ferrlabs'
+      astro-check-args:
+        description: 'Extra args for astro check'
+        type: string
+        default: ''
+      lint-script:
+        type: string
+        default: 'lint'
+      build-script:
+        type: string
+        default: 'build'
+      i18n-script:
+        description: 'Script name for i18n parity check (omit if not present)'
+        type: string
+        default: 'check:i18n'
+      dist-path:
+        description: 'Path to built dist (relative to working-directory)'
+        type: string
+        default: 'dist'
+      enable-astro-check:
+        type: boolean
+        default: true
+      enable-lint:
+        type: boolean
+        default: true
+      enable-build:
+        type: boolean
+        default: true
+      enable-i18n:
+        type: boolean
+        default: true
+      enable-lighthouse:
+        description: 'Run Lighthouse CI on PRs (requires LHCI_GITHUB_APP_TOKEN secret)'
+        type: boolean
+        default: false
+      lighthouse-only-pr:
+        description: 'Run Lighthouse only on pull_request events'
+        type: boolean
+        default: true
+      lighthouse-version:
+        type: string
+        default: '0.14.x'
+    secrets:
+      FERRLABS_PACKAGES_READ:
+        required: false
+      LHCI_GITHUB_APP_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Check
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+        with:
+          version: ${{ inputs.pnpm-version }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+          cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.registry-scope }}
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+        run: pnpm install ${{ inputs.install-args }}
+      - name: Astro check
+        if: inputs.enable-astro-check
+        run: pnpm exec astro check ${{ inputs.astro-check-args }}
+      - name: Lint
+        if: inputs.enable-lint
+        run: pnpm run ${{ inputs.lint-script }}
+      - name: Build
+        if: inputs.enable-build
+        run: pnpm run ${{ inputs.build-script }}
+      - name: Upload dist (for downstream Lighthouse)
+        if: inputs.enable-build && inputs.enable-lighthouse && (github.event_name == 'pull_request' || !inputs.lighthouse-only-pr)
+        uses: actions/upload-artifact@v7
+        with:
+          name: site-dist
+          path: ${{ inputs.working-directory }}/${{ inputs.dist-path }}
+          retention-days: 1
+
+  i18n:
+    name: i18n parity
+    if: inputs.enable-i18n
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+        with:
+          version: ${{ inputs.pnpm-version }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+          cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.registry-scope }}
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+        run: pnpm install ${{ inputs.install-args }}
+      - name: Check i18n parity
+        run: pnpm run ${{ inputs.i18n-script }}
+        continue-on-error: true
+
+  lighthouse:
+    name: Lighthouse CI
+    needs: build
+    if: inputs.enable-lighthouse && (github.event_name == 'pull_request' || !inputs.lighthouse-only-pr)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: site-dist
+          path: ${{ inputs.dist-path }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+      - name: Run Lighthouse
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        run: |
+          npm install -g @lhci/cli@${{ inputs.lighthouse-version }}
+          lhci autorun --collect.staticDistDir=${{ inputs.dist-path }} || true

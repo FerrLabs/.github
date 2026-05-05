@@ -1,0 +1,208 @@
+name: Reusable — CI Go
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Module root (for non-root or multi-module repos)'
+        type: string
+        default: '.'
+      runner:
+        description: 'GitHub Actions runner label'
+        type: string
+        default: 'ubuntu-latest'
+      go-version-file:
+        description: 'Path to go.mod (relative to working-directory)'
+        type: string
+        default: 'go.mod'
+      go-version:
+        description: 'Override Go version (takes precedence over go-version-file if set)'
+        type: string
+        default: ''
+      golangci-version:
+        type: string
+        default: 'latest'
+      build-paths:
+        description: 'Packages to build (default ./...)'
+        type: string
+        default: './...'
+      test-paths:
+        description: 'Packages to test (default ./...)'
+        type: string
+        default: './...'
+      enable-fmt:
+        type: boolean
+        default: true
+      enable-vet:
+        type: boolean
+        default: true
+      enable-lint:
+        type: boolean
+        default: true
+      enable-test:
+        type: boolean
+        default: true
+      enable-race:
+        description: 'Run go test with -race'
+        type: boolean
+        default: true
+      enable-coverage:
+        type: boolean
+        default: true
+      enable-vulncheck:
+        description: 'Run govulncheck'
+        type: boolean
+        default: true
+      enable-build:
+        type: boolean
+        default: true
+      skip-on-release-commit:
+        description: 'Skip checks on push commits starting with chore(release):'
+        type: boolean
+        default: true
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Detect Go module
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    outputs:
+      has_go: ${{ steps.check.outputs.has_go }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: check
+        run: |
+          if [ -f "${{ inputs.go-version-file }}" ]; then
+            echo "has_go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_go=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  lint:
+    name: Lint
+    needs: detect
+    if: |
+      needs.detect.outputs.has_go == 'true' && (inputs.enable-fmt || inputs.enable-vet || inputs.enable-lint) && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
+          cache: true
+      - name: gofmt
+        if: inputs.enable-fmt
+        run: |
+          diff=$(gofmt -l .)
+          if [ -n "$diff" ]; then
+            echo "Files need gofmt:"
+            echo "$diff"
+            exit 1
+          fi
+      - name: go vet
+        if: inputs.enable-vet
+        run: go vet ${{ inputs.test-paths }}
+      - if: inputs.enable-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ inputs.golangci-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+  test:
+    name: Test
+    needs: detect
+    if: |
+      needs.detect.outputs.has_go == 'true' && inputs.enable-test && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
+          cache: true
+      - name: Test
+        run: |
+          ARGS=""
+          if [ "${{ inputs.enable-race }}" = "true" ]; then ARGS="$ARGS -race"; fi
+          if [ "${{ inputs.enable-coverage }}" = "true" ]; then ARGS="$ARGS -coverprofile=coverage.out"; fi
+          go test $ARGS ${{ inputs.test-paths }}
+      - if: inputs.enable-coverage
+        uses: codecov/codecov-action@v6
+        with:
+          files: ${{ inputs.working-directory }}/coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  security:
+    name: Security
+    needs: detect
+    if: |
+      needs.detect.outputs.has_go == 'true' && inputs.enable-vulncheck && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
+          cache: true
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ${{ inputs.test-paths }}
+
+  build:
+    name: Build
+    needs: [detect, lint, test]
+    if: |
+      always() && needs.detect.outputs.has_go == 'true' && inputs.enable-build &&
+      (needs.lint.result == 'success' || needs.lint.result == 'skipped') &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
+          cache: true
+      - name: Build
+        run: go build -o bin/ ${{ inputs.build-paths }}

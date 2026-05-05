@@ -1,0 +1,177 @@
+name: Reusable — CI Node/TypeScript
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Package root (for monorepos / nested packages)'
+        type: string
+        default: '.'
+      runner:
+        description: 'GitHub Actions runner label'
+        type: string
+        default: 'ferrlabs-k8s'
+      node-version:
+        description: 'Node.js version'
+        type: string
+        default: '24'
+      pnpm-version:
+        description: 'pnpm version'
+        type: string
+        default: '10'
+      package-manager:
+        description: 'Package manager (pnpm, npm, yarn)'
+        type: string
+        default: 'pnpm'
+      install-args:
+        description: 'Extra args for the install command (e.g. --filter for monorepo)'
+        type: string
+        default: '--frozen-lockfile'
+      registry-url:
+        description: 'npm registry URL for scoped packages'
+        type: string
+        default: 'https://npm.pkg.github.com'
+      registry-scope:
+        description: 'Scope to attach to the registry (e.g. @ferrlabs)'
+        type: string
+        default: '@ferrlabs'
+      typecheck-script:
+        description: 'Script name for typecheck (in package.json)'
+        type: string
+        default: 'typecheck'
+      lint-script:
+        description: 'Script name for lint'
+        type: string
+        default: 'lint'
+      test-script:
+        description: 'Script name for tests with coverage'
+        type: string
+        default: 'test:coverage'
+      build-script:
+        description: 'Script name for build'
+        type: string
+        default: 'build'
+      enable-typecheck:
+        type: boolean
+        default: true
+      enable-lint:
+        type: boolean
+        default: true
+      enable-test:
+        type: boolean
+        default: true
+      enable-build:
+        type: boolean
+        default: true
+      enable-knip:
+        description: 'Run knip (dead code, unused exports & deps)'
+        type: boolean
+        default: true
+      enable-madge:
+        description: 'Run madge --circular'
+        type: boolean
+        default: true
+      madge-paths:
+        description: 'Path(s) for madge to scan'
+        type: string
+        default: 'src'
+      enable-audit:
+        description: 'Run package-manager audit'
+        type: boolean
+        default: true
+      audit-level:
+        description: 'Audit severity threshold (low, moderate, high, critical)'
+        type: string
+        default: 'high'
+      coverage-upload:
+        description: 'Upload coverage to Codecov'
+        type: boolean
+        default: true
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+      FERRLABS_PACKAGES_READ:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test & Build
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - if: inputs.package-manager == 'pnpm'
+        uses: pnpm/action-setup@v5
+        with:
+          version: ${{ inputs.pnpm-version }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ inputs.package-manager }}
+          cache-dependency-path: ${{ inputs.working-directory }}/${{ inputs.package-manager == 'pnpm' && 'pnpm-lock.yaml' || inputs.package-manager == 'yarn' && 'yarn.lock' || 'package-lock.json' }}
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.registry-scope }}
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+        run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
+      - name: Typecheck
+        if: inputs.enable-typecheck
+        run: ${{ inputs.package-manager }} run ${{ inputs.typecheck-script }}
+      - name: Lint
+        if: inputs.enable-lint
+        run: ${{ inputs.package-manager }} run ${{ inputs.lint-script }}
+      - name: Test
+        if: inputs.enable-test
+        run: ${{ inputs.package-manager }} run ${{ inputs.test-script }}
+      - name: Upload coverage
+        if: inputs.enable-test && inputs.coverage-upload
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          working-directory: ${{ inputs.working-directory }}
+      - name: Build
+        if: inputs.enable-build
+        run: ${{ inputs.package-manager }} run ${{ inputs.build-script }}
+
+  quality:
+    name: Quality (knip, madge, audit)
+    if: inputs.enable-knip || inputs.enable-madge || inputs.enable-audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - if: inputs.package-manager == 'pnpm'
+        uses: pnpm/action-setup@v5
+        with:
+          version: ${{ inputs.pnpm-version }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ inputs.package-manager }}
+          cache-dependency-path: ${{ inputs.working-directory }}/${{ inputs.package-manager == 'pnpm' && 'pnpm-lock.yaml' || inputs.package-manager == 'yarn' && 'yarn.lock' || 'package-lock.json' }}
+          registry-url: ${{ inputs.registry-url }}
+          scope: ${{ inputs.registry-scope }}
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+        run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
+      - name: knip
+        if: inputs.enable-knip
+        run: ${{ inputs.package-manager }} dlx knip --reporter compact
+        continue-on-error: true
+      - name: madge (circular imports)
+        if: inputs.enable-madge
+        run: ${{ inputs.package-manager }} dlx madge --circular --extensions ts,tsx,js,jsx ${{ inputs.madge-paths }}
+        continue-on-error: true
+      - name: audit
+        if: inputs.enable-audit
+        run: ${{ inputs.package-manager }} audit --prod --audit-level=${{ inputs.audit-level }}
