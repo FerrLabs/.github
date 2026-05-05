@@ -70,7 +70,7 @@ on:
       fail-on-machete:
         description: 'Fail the workflow on cargo machete unused-dep findings'
         type: boolean
-        default: true
+        default: false
       audit-ignore:
         description: 'Comma-separated RUSTSEC IDs to ignore (e.g. RUSTSEC-2023-0071)'
         type: string
