@@ -68,7 +68,7 @@ on:
         type: string
         default: '0.14.x'
     secrets:
-      FERRLABS_PACKAGES_READ:
+      FERRFLOW_PACKAGES_READ:
         required: false
       LHCI_GITHUB_APP_TOKEN:
         required: false
@@ -97,7 +97,7 @@ jobs:
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
         run: pnpm install ${{ inputs.install-args }}
       - name: Astro check
         if: inputs.enable-astro-check
@@ -137,7 +137,7 @@ jobs:
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
         run: pnpm install ${{ inputs.install-args }}
       - name: Check i18n parity
         run: pnpm run ${{ inputs.i18n-script }}
