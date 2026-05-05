@@ -1,0 +1,222 @@
+name: Reusable — CI Rust
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Crate root (for monorepos / non-root crates)'
+        type: string
+        default: '.'
+      runner:
+        description: 'GitHub Actions runner label'
+        type: string
+        default: 'ubuntu-latest'
+      rust-toolchain:
+        description: 'Rust toolchain (stable, nightly, beta, or pinned version)'
+        type: string
+        default: 'stable'
+      rust-components:
+        description: 'Comma-separated rustup components'
+        type: string
+        default: 'clippy, rustfmt'
+      rust-targets:
+        description: 'Comma-separated rustup targets (optional)'
+        type: string
+        default: ''
+      cargo-flags:
+        description: 'Flags appended to cargo invocations (clippy, test, build)'
+        type: string
+        default: '--all-features'
+      clippy-args:
+        description: 'Args after the `--` separator for clippy'
+        type: string
+        default: '-D warnings'
+      test-args:
+        description: 'Extra args for cargo test'
+        type: string
+        default: ''
+      check-fmt:
+        description: 'Run `cargo fmt --check`'
+        type: boolean
+        default: true
+      check-clippy:
+        description: 'Run cargo clippy'
+        type: boolean
+        default: true
+      run-tests:
+        description: 'Run cargo test'
+        type: boolean
+        default: true
+      enable-audit:
+        description: 'Run cargo audit (RustSec advisories)'
+        type: boolean
+        default: true
+      enable-deny:
+        description: 'Run cargo deny check (advisories + bans + licenses + sources)'
+        type: boolean
+        default: true
+      enable-machete:
+        description: 'Run cargo machete (unused deps)'
+        type: boolean
+        default: true
+      enable-typos:
+        description: 'Run typos-cli'
+        type: boolean
+        default: true
+      enable-coverage:
+        description: 'Generate coverage and upload to Codecov'
+        type: boolean
+        default: true
+      coverage-tool:
+        description: 'Coverage tool (llvm-cov or tarpaulin)'
+        type: string
+        default: 'llvm-cov'
+      cache:
+        description: 'Enable Swatinem/rust-cache'
+        type: boolean
+        default: true
+      skip-on-release-commit:
+        description: 'Skip checks on push commits starting with chore(release):'
+        type: boolean
+        default: true
+      ferrflow-hmac-secret-required:
+        description: 'Whether the FERRFLOW_HMAC_SECRET secret should be wired up (FerrFlow only)'
+        type: boolean
+        default: false
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+      FERRFLOW_HMAC_SECRET:
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Test
+    if: |
+      !inputs.skip-on-release-commit ||
+      github.event_name != 'push' ||
+      !startsWith(github.event.head_commit.message, 'chore(release):')
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+          components: ${{ inputs.rust-components }}
+          targets: ${{ inputs.rust-targets }}
+      - if: inputs.cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.working-directory }}
+      - name: Format check
+        if: inputs.check-fmt
+        run: cargo fmt --check
+      - name: Clippy
+        if: inputs.check-clippy
+        env:
+          FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
+        run: cargo clippy ${{ inputs.cargo-flags }} -- ${{ inputs.clippy-args }}
+      - name: Tests
+        if: inputs.run-tests
+        env:
+          FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
+        run: cargo test ${{ inputs.cargo-flags }} ${{ inputs.test-args }}
+
+  security:
+    name: Cargo Security
+    if: |
+      (inputs.enable-audit || inputs.enable-deny || inputs.enable-machete) && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+      - if: inputs.cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.working-directory }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit,cargo-deny,cargo-machete
+      - name: cargo audit (RustSec advisories)
+        if: inputs.enable-audit
+        run: cargo audit --deny warnings
+      - name: cargo deny
+        if: inputs.enable-deny
+        run: cargo deny ${{ inputs.cargo-flags }} check
+      - name: cargo machete (unused deps)
+        if: inputs.enable-machete
+        run: cargo machete
+
+  typos:
+    name: Typos
+    if: inputs.enable-typos
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: crate-ci/typos@master
+        with:
+          files: ${{ inputs.working-directory }}
+
+  coverage:
+    name: Coverage
+    if: |
+      inputs.enable-coverage && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
+    runs-on: ${{ inputs.runner }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+          components: llvm-tools-preview
+      - if: inputs.cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.working-directory }}
+      - if: inputs.coverage-tool == 'llvm-cov'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - name: Generate coverage (llvm-cov)
+        if: inputs.coverage-tool == 'llvm-cov'
+        env:
+          FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
+        run: cargo llvm-cov ${{ inputs.cargo-flags }} --workspace --lcov --output-path lcov.info
+      - name: Generate coverage (tarpaulin)
+        if: inputs.coverage-tool == 'tarpaulin'
+        env:
+          FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out xml --skip-clean
+      - uses: codecov/codecov-action@v6
+        with:
+          files: ${{ inputs.coverage-tool == 'llvm-cov' && 'lcov.info' || 'cobertura.xml' }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          working-directory: ${{ inputs.working-directory }}
