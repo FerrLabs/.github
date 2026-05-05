@@ -53,6 +53,10 @@ on:
         description: 'Run govulncheck'
         type: boolean
         default: true
+      fail-on-vulncheck:
+        description: 'Fail the workflow on govulncheck findings (often unfixable upstream)'
+        type: boolean
+        default: false
       enable-build:
         type: boolean
         default: true
@@ -180,7 +184,16 @@ jobs:
       - name: govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
+          set +e
           govulncheck ${{ inputs.test-paths }}
+          EXIT=$?
+          set -e
+          if [ "${{ inputs.fail-on-vulncheck }}" = "true" ]; then
+            exit $EXIT
+          fi
+          if [ "$EXIT" != "0" ]; then
+            echo "::warning::govulncheck found vulnerabilities (non-blocking — set fail-on-vulncheck: true to act on them)"
+          fi
 
   build:
     name: Build

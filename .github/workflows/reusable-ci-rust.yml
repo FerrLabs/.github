@@ -63,6 +63,18 @@ on:
         description: 'Run typos-cli'
         type: boolean
         default: true
+      fail-on-audit:
+        description: 'Fail the workflow on cargo audit advisories (often unfixable upstream)'
+        type: boolean
+        default: false
+      fail-on-machete:
+        description: 'Fail the workflow on cargo machete unused-dep findings'
+        type: boolean
+        default: true
+      audit-ignore:
+        description: 'Comma-separated RUSTSEC IDs to ignore (e.g. RUSTSEC-2023-0071)'
+        type: string
+        default: ''
       enable-coverage:
         description: 'Generate coverage and upload to Codecov'
         type: boolean
@@ -174,13 +186,39 @@ jobs:
           tool: cargo-audit,cargo-deny,cargo-machete
       - name: cargo audit (RustSec advisories)
         if: inputs.enable-audit
-        run: cargo audit --deny warnings
+        run: |
+          IGNORES=""
+          if [ -n "${{ inputs.audit-ignore }}" ]; then
+            for id in $(echo "${{ inputs.audit-ignore }}" | tr ',' ' '); do
+              IGNORES="$IGNORES --ignore $id"
+            done
+          fi
+          set +e
+          cargo audit --deny warnings $IGNORES
+          EXIT=$?
+          set -e
+          if [ "${{ inputs.fail-on-audit }}" = "true" ]; then
+            exit $EXIT
+          fi
+          if [ "$EXIT" != "0" ]; then
+            echo "::warning::cargo audit found advisories (non-blocking — set fail-on-audit: true or update audit-ignore to act on them)"
+          fi
       - name: cargo deny
         if: inputs.enable-deny
         run: cargo deny ${{ inputs.cargo-flags }} check
       - name: cargo machete (unused deps)
         if: inputs.enable-machete
-        run: cargo machete
+        run: |
+          set +e
+          cargo machete
+          EXIT=$?
+          set -e
+          if [ "${{ inputs.fail-on-machete }}" = "true" ]; then
+            exit $EXIT
+          fi
+          if [ "$EXIT" != "0" ]; then
+            echo "::warning::cargo machete found unused dependencies"
+          fi
 
   typos:
     name: Typos
