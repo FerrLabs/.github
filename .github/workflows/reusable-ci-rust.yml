@@ -83,6 +83,10 @@ on:
         description: 'Whether the FERRFLOW_HMAC_SECRET secret should be wired up (FerrFlow only)'
         type: boolean
         default: false
+      apt-packages:
+        description: 'Space-separated apt packages to install before cargo (e.g. for OpenSSL or build deps). Only effective on Ubuntu runners.'
+        type: string
+        default: ''
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -109,6 +113,12 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v6
+      - if: inputs.apt-packages != '' && runner.os == 'Linux'
+        name: Install apt packages
+        run: |
+          if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
@@ -146,6 +156,12 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v6
+      - if: inputs.apt-packages != '' && runner.os == 'Linux'
+        name: Install apt packages
+        run: |
+          if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
@@ -190,6 +206,12 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v6
+      - if: inputs.apt-packages != '' && runner.os == 'Linux'
+        name: Install apt packages
+        run: |
+          if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
