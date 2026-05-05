@@ -98,6 +98,11 @@ on:
     secrets:
       CODECOV_TOKEN:
         required: false
+      # GitHub Packages read token. Either name works — `FERRLABS_PACKAGES_READ`
+      # is the eventual canonical (post-rename), `FERRFLOW_PACKAGES_READ` is the
+      # legacy from when the org was FerrFlow. Consumers can declare either.
+      FERRLABS_PACKAGES_READ:
+        required: false
       FERRFLOW_PACKAGES_READ:
         required: false
 
@@ -126,7 +131,7 @@ jobs:
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
         run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
       - name: Typecheck
         if: inputs.enable-typecheck
@@ -170,7 +175,7 @@ jobs:
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
         run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
       - name: knip
         if: inputs.enable-knip
