@@ -98,7 +98,7 @@ on:
     secrets:
       CODECOV_TOKEN:
         required: false
-      FERRLABS_PACKAGES_READ:
+      FERRFLOW_PACKAGES_READ:
         required: false
 
 permissions:
@@ -126,7 +126,7 @@ jobs:
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
         run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
       - name: Typecheck
         if: inputs.enable-typecheck
@@ -170,7 +170,7 @@ jobs:
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
         run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
       - name: knip
         if: inputs.enable-knip
