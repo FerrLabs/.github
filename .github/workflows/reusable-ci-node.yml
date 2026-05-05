@@ -27,6 +27,10 @@ on:
         description: 'Extra args for the install command (e.g. --filter for monorepo)'
         type: string
         default: '--frozen-lockfile'
+      script-runner:
+        description: 'Command prefix for running package.json scripts. Override for monorepos to use --filter (e.g. "pnpm --filter @ferrvault/app")'
+        type: string
+        default: 'pnpm run'
       registry-url:
         description: 'npm registry URL for scoped packages'
         type: string
@@ -122,13 +126,13 @@ jobs:
         run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
       - name: Typecheck
         if: inputs.enable-typecheck
-        run: ${{ inputs.package-manager }} run ${{ inputs.typecheck-script }}
+        run: ${{ inputs.script-runner }} ${{ inputs.typecheck-script }}
       - name: Lint
         if: inputs.enable-lint
-        run: ${{ inputs.package-manager }} run ${{ inputs.lint-script }}
+        run: ${{ inputs.script-runner }} ${{ inputs.lint-script }}
       - name: Test
         if: inputs.enable-test
-        run: ${{ inputs.package-manager }} run ${{ inputs.test-script }}
+        run: ${{ inputs.script-runner }} ${{ inputs.test-script }}
       - name: Upload coverage
         if: inputs.enable-test && inputs.coverage-upload
         uses: codecov/codecov-action@v6
@@ -138,7 +142,7 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Build
         if: inputs.enable-build
-        run: ${{ inputs.package-manager }} run ${{ inputs.build-script }}
+        run: ${{ inputs.script-runner }} ${{ inputs.build-script }}
 
   quality:
     name: Quality (knip, madge, audit)
