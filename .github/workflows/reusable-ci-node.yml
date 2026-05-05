@@ -31,6 +31,10 @@ on:
         description: 'Command prefix for running package.json scripts. Override for monorepos to use --filter (e.g. "pnpm --filter @ferrvault/app")'
         type: string
         default: 'pnpm run'
+      cache:
+        description: 'Enable setup-node cache. Disable when no lockfile is committed yet.'
+        type: boolean
+        default: true
       registry-url:
         description: 'npm registry URL for scoped packages'
         type: string
@@ -116,8 +120,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node-version }}
-          cache: ${{ inputs.package-manager }}
-          cache-dependency-path: ${{ inputs.working-directory }}/${{ inputs.package-manager == 'pnpm' && 'pnpm-lock.yaml' || inputs.package-manager == 'yarn' && 'yarn.lock' || 'package-lock.json' }}
+          cache: ${{ inputs.cache && inputs.package-manager || '' }}
+          cache-dependency-path: ${{ inputs.cache && format('{0}/{1}', inputs.working-directory, inputs.package-manager == 'pnpm' && 'pnpm-lock.yaml' || inputs.package-manager == 'yarn' && 'yarn.lock' || 'package-lock.json') || '' }}
           registry-url: ${{ inputs.registry-url }}
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
@@ -160,8 +164,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node-version }}
-          cache: ${{ inputs.package-manager }}
-          cache-dependency-path: ${{ inputs.working-directory }}/${{ inputs.package-manager == 'pnpm' && 'pnpm-lock.yaml' || inputs.package-manager == 'yarn' && 'yarn.lock' || 'package-lock.json' }}
+          cache: ${{ inputs.cache && inputs.package-manager || '' }}
+          cache-dependency-path: ${{ inputs.cache && format('{0}/{1}', inputs.working-directory, inputs.package-manager == 'pnpm' && 'pnpm-lock.yaml' || inputs.package-manager == 'yarn' && 'yarn.lock' || 'package-lock.json') || '' }}
           registry-url: ${{ inputs.registry-url }}
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
