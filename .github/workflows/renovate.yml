@@ -42,3 +42,31 @@ jobs:
           RENOVATE_PLATFORM: "github"
           RENOVATE_REPOSITORY_CACHE: "enabled"
           RENOVATE_GIT_AUTHOR: "Renovate Bot <renovate@ferrlabs.com>"
+          # Auth for GHCR npm registry (where @ferrlabs/* live).
+          # Without this, lookups for @ferrlabs/ui, @ferrlabs/ui-astro,
+          # @ferrlabs/ui-foundation fail with `no-result` because Renovate
+          # tries npmjs.org by default. The packageRule in default.json
+          # overrides registryUrls to npm.pkg.github.com; this token lets
+          # us actually authenticate against it.
+          # Same token is used by the github-actions hostRule for cross-repo
+          # actions (octokit calls when resolving release notes for things
+          # like FerrLabs/UI tags) and by the git-refs datasource fetching
+          # FerrLabs/Kit refs/heads/main.
+          RENOVATE_HOST_RULES: |
+            [
+              {
+                "matchHost": "npm.pkg.github.com",
+                "hostType": "npm",
+                "token": "${{ secrets.RENOVATE_TOKEN }}"
+              },
+              {
+                "matchHost": "github.com",
+                "hostType": "github-tags",
+                "token": "${{ secrets.RENOVATE_TOKEN }}"
+              },
+              {
+                "matchHost": "github.com",
+                "hostType": "git-refs",
+                "token": "${{ secrets.RENOVATE_TOKEN }}"
+              }
+            ]

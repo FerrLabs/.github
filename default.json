@@ -30,8 +30,9 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "description": "FerrLabs npm packages — trust them, scan often, merge without delay",
+      "description": "FerrLabs npm packages — trust them, scan often, merge without delay. Override registry to GHCR (npm.pkg.github.com) since these packages aren't on npmjs.org. Auth comes from RENOVATE_HOST_RULES env in the runner workflow.",
       "matchPackagePatterns": ["^@ferrlabs/"],
+      "registryUrls": ["https://npm.pkg.github.com"],
       "schedule": ["* * * * *"],
       "minimumReleaseAge": "0",
       "automerge": true,
@@ -100,15 +101,15 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "FerrLabs Kit crates pinned via git rev = ... in Cargo.toml",
+      "description": "FerrLabs Kit crates pinned via git rev = ... in Cargo.toml. Tracks the HEAD of `main` via the git-refs datasource — Kit publishes per-crate tags (ferrlabs-types-v0.4.0 etc.), not a single repo-wide semver tag, so github-tags doesn't fit. git-refs returns the SHA of refs/heads/main and Renovate bumps the rev= to it.",
       "fileMatch": ["(^|/)Cargo\\.toml$"],
       "matchStrings": [
         "ferrlabs-[a-z\\-]+\\s*=\\s*\\{\\s*git\\s*=\\s*\"https://github.com/FerrLabs/Kit\\.git\"\\s*,\\s*rev\\s*=\\s*\"(?<currentDigest>[a-f0-9]+)\"\\s*\\}"
       ],
       "currentValueTemplate": "main",
       "depNameTemplate": "FerrLabs/Kit",
-      "packageNameTemplate": "FerrLabs/Kit",
-      "datasourceTemplate": "github-tags"
+      "packageNameTemplate": "https://github.com/FerrLabs/Kit",
+      "datasourceTemplate": "git-refs"
     }
   ]
 }
