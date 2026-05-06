@@ -44,7 +44,7 @@ permissions: {}
 jobs:
   renovate:
     name: Run Renovate
-    runs-on: ubuntu-latest
+    runs-on: ferrlabs-k8s
     steps:
       # Mint a short-lived (1h) installation token from the GitHub App.
       # Replaces the long-lived PAT we used previously — commits and PRs

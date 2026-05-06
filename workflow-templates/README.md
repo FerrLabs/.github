@@ -29,7 +29,7 @@ Hosting the reusables in the **public** `.github` repo (rather than the private 
 
 ## Conventions
 
-- Default runner: `ubuntu-latest`. Heavier jobs (Node install, Astro build, Docker build) target the self-hosted `ferrlabs-k8s` cluster.
+- Default runner: `ferrlabs-k8s` (self-hosted Kubernetes cluster). All jobs target it to avoid GitHub Actions billing on private repos.
 - Pinned major versions for trusted official actions (`actions/checkout@v6`, `dtolnay/rust-toolchain@stable`, etc.).
 - Coverage is uploaded to Codecov when `CODECOV_TOKEN` is set; failures are non-blocking.
 - All security templates upload SARIF to the GitHub code-scanning UI.

@@ -45,7 +45,7 @@ jobs:
 
   i18n:
     name: i18n parity
-    runs-on: ubuntu-latest
+    runs-on: ferrlabs-k8s
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v5
@@ -69,7 +69,7 @@ jobs:
     name: Lighthouse CI
     needs: build
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ferrlabs-k8s
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8

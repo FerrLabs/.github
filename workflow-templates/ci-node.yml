@@ -44,7 +44,7 @@ jobs:
 
   quality:
     name: Quality (knip, madge, audit)
-    runs-on: ubuntu-latest
+    runs-on: ferrlabs-k8s
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v5
