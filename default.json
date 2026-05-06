@@ -11,6 +11,7 @@
   "prConcurrentLimit": 10,
   "prHourlyLimit": 4,
   "labels": ["dependencies"],
+  "platformAutomerge": false,
   "vulnerabilityAlerts": {
     "enabled": true,
     "labels": ["security"],
@@ -23,13 +24,25 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "description": "FerrLabs own packages — trust them, merge without delay",
+      "description": "FerrLabs npm packages — trust them, scan often, merge without delay",
       "matchPackagePatterns": ["^@ferrlabs/"],
+      "schedule": ["* * * * *"],
       "minimumReleaseAge": "0",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash",
-      "groupName": "FerrLabs packages"
+      "groupName": "FerrLabs npm packages"
+    },
+    {
+      "description": "FerrLabs Kit crates pinned via git rev — scan often, merge without delay",
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["FerrLabs/Kit"],
+      "schedule": ["* * * * *"],
+      "minimumReleaseAge": "0",
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "groupName": "FerrLabs Kit"
     },
     {
       "description": "High merge confidence — auto-merge non-major",
@@ -40,7 +53,7 @@
       "automergeStrategy": "squash"
     },
     {
-      "description": "Cargo patch + minor — auto-merge (no merge confidence data on crates.io)",
+      "description": "Cargo patch + minor (third-party) — auto-merge (no merge confidence on crates.io)",
       "matchManagers": ["cargo"],
       "matchUpdateTypes": ["patch", "minor"],
       "automerge": true,
@@ -48,16 +61,18 @@
       "automergeStrategy": "squash"
     },
     {
-      "description": "GitHub Actions — grouped + auto-merge",
+      "description": "GitHub Actions — grouped + auto-merge, weekly",
       "matchManagers": ["github-actions"],
+      "schedule": ["before 6am on monday"],
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash",
       "groupName": "GitHub Actions"
     },
     {
-      "description": "Dockerfile base images — grouped + auto-merge",
+      "description": "Dockerfile base images — grouped + auto-merge, weekly",
       "matchManagers": ["dockerfile"],
+      "schedule": ["before 6am on monday"],
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash",
@@ -67,6 +82,20 @@
       "description": "Major updates — always manual",
       "matchUpdateTypes": ["major"],
       "automerge": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "FerrLabs Kit crates pinned via git rev = ... in Cargo.toml",
+      "fileMatch": ["(^|/)Cargo\\.toml$"],
+      "matchStrings": [
+        "ferrlabs-[a-z\\-]+\\s*=\\s*\\{\\s*git\\s*=\\s*\"https://github.com/FerrLabs/Kit\\.git\"\\s*,\\s*rev\\s*=\\s*\"(?<currentDigest>[a-f0-9]+)\"\\s*\\}"
+      ],
+      "currentValueTemplate": "main",
+      "depNameTemplate": "FerrLabs/Kit",
+      "packageNameTemplate": "FerrLabs/Kit",
+      "datasourceTemplate": "github-tags"
     }
   ]
 }
