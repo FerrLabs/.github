@@ -1,5 +1,24 @@
 name: Renovate
 
+# Runs Renovate self-hosted under a dedicated GitHub App identity
+# (`ferrlabs-renovate[bot]`) installed in the FerrLabs org. Every commit,
+# PR, branch, and issue Renovate creates is attributed to the bot — not
+# to whichever human happens to own the PAT.
+#
+# Required org-level secrets (Settings → Secrets and variables → Actions):
+#   - RENOVATE_APP_ID            : GitHub App numeric ID (from app's settings page)
+#   - RENOVATE_APP_PRIVATE_KEY   : PEM-encoded private key (full content incl. BEGIN/END lines)
+#
+# To create the App: see the README in this repo or
+# https://github.com/organizations/FerrLabs/settings/apps/new
+#
+# Required App permissions:
+#   Repository → Contents (R/W), Issues (R/W), Pull requests (R/W),
+#                Workflows (R/W), Statuses (R/W), Metadata (R),
+#                Members (R), Dependabot alerts (R)
+#   Organization → Members (R)
+# Install on: All repositories under FerrLabs.
+
 on:
   schedule:
     - cron: "*/15 * * * *"
@@ -27,13 +46,24 @@ jobs:
     name: Run Renovate
     runs-on: ubuntu-latest
     steps:
+      # Mint a short-lived (1h) installation token from the GitHub App.
+      # Replaces the long-lived PAT we used previously — commits and PRs
+      # are now attributed to `ferrlabs-renovate[bot]` instead of a human.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RENOVATE_APP_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: FerrLabs
+
       - name: Checkout config
         uses: actions/checkout@v6
 
       - name: Run Renovate
         uses: renovatebot/github-action@v40.3.1
         with:
-          token: ${{ secrets.RENOVATE_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           configurationFile: default.json
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
@@ -41,7 +71,13 @@ jobs:
           RENOVATE_AUTODISCOVER_FILTER: ${{ inputs.repoFilter || 'FerrLabs/*' }}
           RENOVATE_PLATFORM: "github"
           RENOVATE_REPOSITORY_CACHE: "enabled"
-          RENOVATE_GIT_AUTHOR: "Renovate Bot <renovate@ferrlabs.com>"
+          # Identity of every commit / PR / issue Renovate makes. Format
+          # `<numeric-app-id>+<bot-slug>[bot]@users.noreply.github.com`
+          # is the GitHub-canonical bot author. The numeric prefix is
+          # what GitHub needs to attribute correctly in the timeline UI;
+          # the bot-id env var is set from the token-mint step's output.
+          RENOVATE_GIT_AUTHOR: "${{ steps.app-token.outputs.app-slug }}[bot] <${{ steps.app-token.outputs.bot-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com>"
+          RENOVATE_USERNAME: "${{ steps.app-token.outputs.app-slug }}[bot]"
           # Auth for GHCR npm registry (where @ferrlabs/* live).
           # Without this, lookups for @ferrlabs/ui, @ferrlabs/ui-astro,
           # @ferrlabs/ui-foundation fail with `no-result` because Renovate
@@ -57,16 +93,16 @@ jobs:
               {
                 "matchHost": "npm.pkg.github.com",
                 "hostType": "npm",
-                "token": "${{ secrets.RENOVATE_TOKEN }}"
+                "token": "${{ steps.app-token.outputs.token }}"
               },
               {
                 "matchHost": "github.com",
                 "hostType": "github-tags",
-                "token": "${{ secrets.RENOVATE_TOKEN }}"
+                "token": "${{ steps.app-token.outputs.token }}"
               },
               {
                 "matchHost": "github.com",
                 "hostType": "git-refs",
-                "token": "${{ secrets.RENOVATE_TOKEN }}"
+                "token": "${{ steps.app-token.outputs.token }}"
               }
             ]
