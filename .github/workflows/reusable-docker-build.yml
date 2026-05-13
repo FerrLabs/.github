@@ -41,6 +41,11 @@ on:
         type: boolean
         required: false
         default: true
+      runner:
+        description: 'GitHub Actions runner label for the build job (the heavy one). Private consumers pass `ferrlabs-k8s`; public consumers leave the default.'
+        type: string
+        required: false
+        default: 'ubuntu-latest'
     outputs:
       digest:
         description: 'Image digest (sha256:...)'
@@ -67,7 +72,7 @@ jobs:
   build:
     name: Build & push
     needs: hadolint
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     outputs:
       digest: ${{ steps.push.outputs.digest }}
     steps:

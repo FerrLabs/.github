@@ -10,7 +10,7 @@ on:
       runner:
         description: 'GitHub Actions runner label'
         type: string
-        default: 'ferrlabs-k8s'
+        default: 'ubuntu-latest'
       node-version:
         type: string
         default: '24'
