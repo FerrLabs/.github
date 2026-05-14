@@ -23,6 +23,11 @@ on:
         type: boolean
         required: false
         default: false
+      runner:
+        description: 'GitHub Actions runner label. Defaults to `ubuntu-latest` so public-repo consumers run on free GitHub-hosted runners. Private consumers can override with `ferrlabs-k8s` for the heavier self-hosted pool.'
+        type: string
+        required: false
+        default: 'ubuntu-latest'
 
 permissions:
   contents: read
@@ -31,7 +36,7 @@ permissions:
 jobs:
   gitleaks:
     name: gitleaks (secrets)
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -72,7 +77,7 @@ jobs:
 
   osv-scanner:
     name: osv-scanner (CVE)
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v6
       - name: Detect Go module
@@ -122,7 +127,7 @@ jobs:
 
   trufflehog:
     name: trufflehog (secrets, deep history)
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v6

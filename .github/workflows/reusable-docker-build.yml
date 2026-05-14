@@ -61,7 +61,7 @@ permissions:
 jobs:
   hadolint:
     name: hadolint
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v6
       - uses: hadolint/hadolint-action@v3.1.0
@@ -106,7 +106,7 @@ jobs:
     name: Trivy (CVE scan)
     needs: build
     if: inputs.push
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: aquasecurity/trivy-action@0.35.0
         with:
@@ -127,7 +127,7 @@ jobs:
     name: cosign (sign + attest)
     needs: [build, trivy]
     if: inputs.push
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: sigstore/cosign-installer@v3
       - name: Login to GHCR
@@ -153,7 +153,7 @@ jobs:
     name: SBOM (Syft → CycloneDX)
     needs: build
     if: inputs.push
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: anchore/sbom-action@v0
         with:

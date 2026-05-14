@@ -124,7 +124,7 @@ jobs:
   i18n:
     name: i18n parity
     if: inputs.enable-i18n
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -152,7 +152,7 @@ jobs:
     name: Lighthouse CI
     needs: build
     if: inputs.enable-lighthouse && (github.event_name == 'pull_request' || !inputs.lighthouse-only-pr)
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
