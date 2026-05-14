@@ -156,7 +156,7 @@ jobs:
   quality:
     name: Quality (knip, madge, audit)
     if: inputs.enable-knip || inputs.enable-madge || inputs.enable-audit
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
