@@ -28,6 +28,11 @@ on:
         type: string
         required: false
         default: 'ubuntu-latest'
+      run-on-private:
+        description: 'Set to `true` to run the scans on private repos too. Defaults to `false` because GitHub-hosted runners consume billed minutes on private repos and our security scans are best-effort hygiene, not blocking gates. Public repos always run (Actions are free for them).'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -37,6 +42,7 @@ jobs:
   gitleaks:
     name: gitleaks (secrets)
     runs-on: ${{ inputs.runner }}
+    if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -78,6 +84,7 @@ jobs:
   osv-scanner:
     name: osv-scanner (CVE)
     runs-on: ${{ inputs.runner }}
+    if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@v6
       - name: Detect Go module
@@ -128,7 +135,7 @@ jobs:
   trufflehog:
     name: trufflehog (secrets, deep history)
     runs-on: ${{ inputs.runner }}
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (!github.event.repository.private || inputs.run-on-private) }}
     steps:
       - uses: actions/checkout@v6
         with:
