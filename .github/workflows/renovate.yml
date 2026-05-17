@@ -15,9 +15,19 @@ name: Renovate
 # Required App permissions:
 #   Repository → Contents (R/W), Issues (R/W), Pull requests (R/W),
 #                Workflows (R/W), Statuses (R/W), Metadata (R),
-#                Members (R), Dependabot alerts (R)
+#                Members (R), Dependabot alerts (R),
+#                Packages (R)   ← REQUIRED for @ferrlabs/* lookups on GHCR npm
 #   Organization → Members (R)
 # Install on: All repositories under FerrLabs.
+#
+# About `Packages (R)`: @ferrlabs/ui, @ferrlabs/ui-astro,
+# @ferrlabs/ui-foundation are published to npm.pkg.github.com (GHCR) and
+# require auth to even READ. Without this permission Renovate gets 401 on
+# every lookup and silently emits no PRs for internal libs — third-party
+# crates / npm packages still work because they're public on crates.io /
+# npmjs.org. The first run after granting the permission opens the backlog
+# all at once. Verify via the bootstrap-check step below: it fails the
+# workflow with an actionable message if the token can't read the registry.
 
 on:
   schedule:
@@ -59,6 +69,29 @@ jobs:
 
       - name: Checkout config
         uses: actions/checkout@v6
+
+      - name: Verify token can read GHCR npm (catch missing Packages perm early)
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${TOKEN}" \
+            "https://npm.pkg.github.com/@ferrlabs%2Fui-astro")
+          if [ "${status}" = "200" ]; then
+            echo "ok — App token can read @ferrlabs/* on GHCR (${status})"
+          elif [ "${status}" = "401" ] || [ "${status}" = "403" ]; then
+            echo "::error::App token returned ${status} from npm.pkg.github.com." \
+                 "The 'ferrlabs-renovate' GitHub App is missing the 'Packages (read)'" \
+                 "repository permission. Grant it at" \
+                 "https://github.com/organizations/FerrLabs/settings/apps/ferrlabs-renovate/permissions" \
+                 "(Repository permissions → Packages → Read-only), then accept the new" \
+                 "permission request in the org settings. Without this, Renovate emits no" \
+                 "PRs for @ferrlabs/ui / @ferrlabs/ui-astro / @ferrlabs/ui-foundation."
+            exit 1
+          else
+            echo "::warning::Unexpected ${status} from npm.pkg.github.com — Renovate may still work but investigate."
+          fi
 
       - name: Run Renovate
         uses: renovatebot/github-action@v40.3.1
