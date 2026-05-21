@@ -75,7 +75,7 @@ jobs:
       - name: Checkout config
         uses: actions/checkout@v6
 
-      - name: Verify token can read GHCR npm (catch missing Packages perm early)
+      - name: Probe GHCR npm read access (informational)
         env:
           TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -85,17 +85,22 @@ jobs:
             "https://npm.pkg.github.com/@ferrlabs%2Fui-astro")
           if [ "${status}" = "200" ]; then
             echo "ok — App token can read @ferrlabs/* on GHCR (${status})"
-          elif [ "${status}" = "401" ] || [ "${status}" = "403" ]; then
-            echo "::error::App token returned ${status} from npm.pkg.github.com." \
-                 "The 'ferrlabs-renovate' GitHub App is missing the 'Packages (read)'" \
-                 "repository permission. Grant it at" \
-                 "https://github.com/organizations/FerrLabs/settings/apps/ferrlabs-renovate/permissions" \
-                 "(Repository permissions → Packages → Read-only), then accept the new" \
-                 "permission request in the org settings. Without this, Renovate emits no" \
-                 "PRs for @ferrlabs/ui / @ferrlabs/ui-astro / @ferrlabs/ui-foundation."
-            exit 1
           else
-            echo "::warning::Unexpected ${status} from npm.pkg.github.com — Renovate may still work but investigate."
+            # Downgraded to warning: this probe historically false-positived
+            # when the App had Packages:read granted AND the consumer repos
+            # plus .github were listed under "Manage Actions access" on
+            # every @ferrlabs/* package. App tokens vs GHCR npm have known
+            # rough edges; let Renovate itself decide whether it can reach
+            # the packages — if it can't, the next run will just skip
+            # @ferrlabs/* updates silently, which is recoverable.
+            echo "::warning::Probe returned ${status} from npm.pkg.github.com." \
+                 "If Renovate doesn't open @ferrlabs/* PRs, double-check:" \
+                 "(1) App has Repository → Packages → Read-only at" \
+                 "https://github.com/organizations/FerrLabs/settings/apps/ferrlabs-renovate/permissions" \
+                 "(2) installation has no pending permission accept at" \
+                 "https://github.com/organizations/FerrLabs/settings/installations" \
+                 "(3) each private @ferrlabs/* GHCR npm package lists .github" \
+                 "under Settings → Manage Actions access."
           fi
 
       - name: Run Renovate
