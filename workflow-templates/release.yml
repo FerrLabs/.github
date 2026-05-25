@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: FerrLabs/FerrFlow@v4
+      - uses: FerrLabs/FerrFlow@v5
         with:
           dry_run: ${{ inputs.dry_run || false }}
           bot: true
