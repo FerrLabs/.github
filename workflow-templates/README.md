@@ -14,7 +14,7 @@ GitHub-discovered workflow templates. They appear under **Actions → New workfl
 | [`scorecard`](scorecard.yml) | OpenSSF Scorecard supply-chain risk score | All public repos and key private repos. |
 | [`security-scan`](security-scan.yml) | Reusable: gitleaks (secrets) + osv-scanner (CVE) + trufflehog (deep history) | Every repo — call the shared workflow from `FerrLabs/.github`. |
 | [`pr-title`](pr-title.yml) | Conventional Commits validation on PR titles | Every repo (mandatory because we squash-merge). |
-| [`release`](release.yml) | Auto-release on push to main with `FerrLabs/FerrFlow@v4` | Repos that ship semver releases. |
+| [`release`](release.yml) | Auto-release on push to main with `FerrLabs/FerrFlow@v5` | Repos that ship semver releases. |
 | [`docker-publish`](docker-publish.yml) | Reusable: hadolint + multi-arch build + Trivy + cosign keyless + SBOM | Repos that publish a container image. |
 
 ## Reusable workflows
