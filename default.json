@@ -30,26 +30,40 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "description": "FerrLabs npm packages — trust them, scan often, merge without delay. Override registry to GHCR (npm.pkg.github.com) since these packages aren't on npmjs.org. Auth comes from RENOVATE_HOST_RULES env in the runner workflow.",
+      "description": "FerrLabs npm packages — trust them, scan often, merge without delay. Override registry to GHCR (npm.pkg.github.com) since these packages aren't on npmjs.org. Auth comes from RENOVATE_HOST_RULES env in the runner workflow. internalChecksFilter:none skips the stability-days gate inherited from the global default.",
       "matchPackagePatterns": ["^@ferrlabs/"],
       "registryUrls": ["https://npm.pkg.github.com"],
       "schedule": ["* * * * *"],
       "minimumReleaseAge": "0",
+      "internalChecksFilter": "none",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash",
       "groupName": "FerrLabs npm packages"
     },
     {
-      "description": "FerrLabs Kit crates pinned via git rev — scan often, merge without delay",
+      "description": "FerrLabs Kit crates pinned via git rev — scan often, merge without delay. Targets the depName the customManager below stamps (`FerrLabs/Kit`); `matchPackageNames` would compare against the packageName field (the full URL), so use matchDepNames here. internalChecksFilter:none skips stability-days.",
       "matchManagers": ["custom.regex"],
-      "matchPackageNames": ["FerrLabs/Kit"],
+      "matchDepNames": ["FerrLabs/Kit"],
       "schedule": ["* * * * *"],
       "minimumReleaseAge": "0",
+      "internalChecksFilter": "none",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash",
       "groupName": "FerrLabs Kit"
+    },
+    {
+      "description": "FerrLabs Cargo crates published from Kit (`ferrlabs-*`) — same trust as @ferrlabs/ npm packages. No wait, automerge.",
+      "matchManagers": ["cargo"],
+      "matchDepPatterns": ["^ferrlabs-"],
+      "schedule": ["* * * * *"],
+      "minimumReleaseAge": "0",
+      "internalChecksFilter": "none",
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "groupName": "FerrLabs Cargo crates"
     },
     {
       "description": "Third-party npm — wait 1 day after release before opening PR (supply-chain quarantine), auto-merge only if mergeConfidence is high/very-high",
