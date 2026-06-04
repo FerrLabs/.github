@@ -67,6 +67,18 @@ on:
       lighthouse-version:
         type: string
         default: '0.14.x'
+      enable-sonar:
+        description: 'Run SonarQube static analysis (requires the SONAR_TOKEN secret). No coverage — Astro sites have no test/coverage job here.'
+        type: boolean
+        default: false
+      sonar-project-key:
+        description: 'SonarQube project key (defaults to the repo name; set per-call in monorepos to avoid colliding sub-projects)'
+        type: string
+        default: ''
+      sonar-base-dir:
+        description: 'SonarQube projectBaseDir, when it differs from working-directory. Defaults to working-directory.'
+        type: string
+        default: ''
     secrets:
       # GitHub Packages read token. Either name works — `FERRLABS_PACKAGES_READ`
       # is the eventual canonical (post-rename), `FERRFLOW_PACKAGES_READ` is the
@@ -76,6 +88,8 @@ on:
       FERRFLOW_PACKAGES_READ:
         required: false
       LHCI_GITHUB_APP_TOKEN:
+        required: false
+      SONAR_TOKEN:
         required: false
 
 permissions:
@@ -168,3 +182,18 @@ jobs:
         run: |
           npm install -g @lhci/cli@${{ inputs.lighthouse-version }}
           lhci autorun --collect.staticDistDir=${{ inputs.dist-path }} || true
+
+  sonarqube:
+    name: SonarQube
+    # Static analysis only — this Astro reusable has no test/coverage job, so no
+    # coverage artifact is handed over. !cancelled() so it still runs alongside
+    # build/lint regardless of their result.
+    if: inputs.enable-sonar && !cancelled()
+    needs: build
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
+    with:
+      runner: ${{ inputs.runner }}
+      working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}
+      project-key: ${{ inputs.sonar-project-key }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

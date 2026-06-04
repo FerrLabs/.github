@@ -64,8 +64,26 @@ on:
         description: 'Skip checks on push commits starting with chore(release):'
         type: boolean
         default: true
+      enable-sonar:
+        description: 'Run SonarQube analysis (requires the SONAR_TOKEN secret)'
+        type: boolean
+        default: false
+      sonar-project-key:
+        description: 'SonarQube project key (defaults to the repo name; set per-call in monorepos to avoid colliding sub-projects)'
+        type: string
+        default: ''
+      sonar-base-dir:
+        description: 'SonarQube projectBaseDir, when it differs from working-directory (e.g. multi-module repos analysed from the root). Defaults to working-directory.'
+        type: string
+        default: ''
+      coverage-upload-as:
+        description: 'When set, upload this module coverage profile under this artifact name, for a single repo-level Sonar scan to merge. Use in monorepos instead of enable-sonar to avoid sub-projects.'
+        type: string
+        default: ''
     secrets:
       CODECOV_TOKEN:
+        required: false
+      SONAR_TOKEN:
         required: false
 
 permissions:
@@ -160,6 +178,26 @@ jobs:
           files: ${{ inputs.working-directory }}/coverage.out
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
+      - name: Hand coverage to the SonarQube job
+        if: inputs.enable-sonar && inputs.enable-coverage
+        uses: actions/upload-artifact@v5
+        with:
+          name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
+          path: ${{ inputs.working-directory }}/coverage.out
+          if-no-files-found: warn
+          retention-days: 1
+      # Monorepo path: upload this module's Go coverprofile under a unique artifact
+      # name so a single repo-level Sonar scan (projectBaseDir=.) can merge several
+      # modules. Go coverprofiles carry package import paths, not file paths, so no
+      # SF: rebase is needed — Sonar resolves them against projectBaseDir directly.
+      - name: Upload coverage for repo-level scan
+        if: inputs.coverage-upload-as != '' && inputs.enable-coverage
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ inputs.coverage-upload-as }}
+          path: ${{ inputs.working-directory }}/coverage.out
+          if-no-files-found: warn
+          retention-days: 1
 
   security:
     name: Security
@@ -219,3 +257,20 @@ jobs:
           cache: true
       - name: Build
         run: go build -o bin/ ${{ inputs.build-paths }}
+
+  sonarqube:
+    name: SonarQube
+    # !cancelled() so analysis still runs when tests fail (coverage may be partial)
+    # or when the test job is skipped (enable-test / enable-coverage off).
+    if: inputs.enable-sonar && !cancelled()
+    # needs: test so the coverage artifact exists before the scan downloads it.
+    needs: test
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
+    with:
+      runner: ${{ inputs.runner }}
+      working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}
+      project-key: ${{ inputs.sonar-project-key }}
+      coverage-artifact: ${{ (inputs.enable-coverage && format('sonar-coverage-{0}', inputs.sonar-project-key || github.event.repository.name)) || '' }}
+      args: ${{ inputs.enable-coverage && '-Dsonar.go.coverage.reportPaths=.sonarcov/coverage.out' || '' }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
