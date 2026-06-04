@@ -99,10 +99,16 @@ on:
         description: 'Space-separated apt packages to install before cargo (e.g. for OpenSSL or build deps). Only effective on Ubuntu runners.'
         type: string
         default: ''
+      enable-sonar:
+        description: 'Run SonarQube analysis (requires the SONAR_TOKEN secret)'
+        type: boolean
+        default: false
     secrets:
       CODECOV_TOKEN:
         required: false
       FERRFLOW_HMAC_SECRET:
+        required: false
+      SONAR_TOKEN:
         required: false
 
 permissions:
@@ -280,3 +286,13 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           working-directory: ${{ inputs.working-directory }}
+
+  sonarqube:
+    name: SonarQube
+    if: inputs.enable-sonar
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
+    with:
+      runner: ${{ inputs.runner }}
+      working-directory: ${{ inputs.working-directory }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

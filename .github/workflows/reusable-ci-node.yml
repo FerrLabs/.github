@@ -95,8 +95,14 @@ on:
         description: 'Upload coverage to Codecov'
         type: boolean
         default: true
+      enable-sonar:
+        description: 'Run SonarQube analysis (requires the SONAR_TOKEN secret)'
+        type: boolean
+        default: false
     secrets:
       CODECOV_TOKEN:
+        required: false
+      SONAR_TOKEN:
         required: false
       # GitHub Packages read token. Either name works — `FERRLABS_PACKAGES_READ`
       # is the eventual canonical (post-rename), `FERRFLOW_PACKAGES_READ` is the
@@ -188,3 +194,13 @@ jobs:
       - name: audit
         if: inputs.enable-audit
         run: ${{ inputs.package-manager }} audit --prod --audit-level=${{ inputs.audit-level }}
+
+  sonarqube:
+    name: SonarQube
+    if: inputs.enable-sonar
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
+    with:
+      runner: ${{ inputs.runner }}
+      working-directory: ${{ inputs.working-directory }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
