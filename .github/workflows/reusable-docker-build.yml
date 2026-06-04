@@ -61,7 +61,10 @@ permissions:
 jobs:
   hadolint:
     name: hadolint
-    runs-on: ${{ inputs.runner }}
+    # Docker container action — needs a Docker daemon, which the self-hosted ARC
+    # runners don't provide. Pin to GitHub-hosted ubuntu-latest; the heavy build
+    # job below stays on the configured (self-hosted) runner.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: hadolint/hadolint-action@v3.1.0
