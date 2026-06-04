@@ -103,6 +103,10 @@ on:
         description: 'SonarQube project key (defaults to the repo name; set per-call in monorepos to avoid colliding sub-projects)'
         type: string
         default: ''
+      sonar-lcov-path:
+        description: 'Path to the lcov report (relative to working-directory) imported as SonarQube coverage'
+        type: string
+        default: 'coverage/lcov.info'
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -159,6 +163,14 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           working-directory: ${{ inputs.working-directory }}
+      - name: Hand lcov to the SonarQube job
+        if: inputs.enable-sonar && inputs.enable-test
+        uses: actions/upload-artifact@v5
+        with:
+          name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
+          path: ${{ inputs.working-directory }}/${{ inputs.sonar-lcov-path }}
+          if-no-files-found: warn
+          retention-days: 1
       - name: Build
         if: inputs.enable-build
         run: ${{ inputs.script-runner }} ${{ inputs.build-script }}
@@ -201,11 +213,16 @@ jobs:
 
   sonarqube:
     name: SonarQube
-    if: inputs.enable-sonar
+    # !cancelled() so analysis still runs when tests fail (coverage may be partial).
+    if: inputs.enable-sonar && !cancelled()
+    # needs: test so the coverage artifact exists before the scan downloads it.
+    needs: test
     uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.working-directory }}
       project-key: ${{ inputs.sonar-project-key }}
+      coverage-artifact: ${{ (inputs.enable-test && format('sonar-coverage-{0}', inputs.sonar-project-key || github.event.repository.name)) || '' }}
+      args: ${{ inputs.enable-test && '-Dsonar.javascript.lcov.reportPaths=.sonarcov/lcov.info' || '' }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

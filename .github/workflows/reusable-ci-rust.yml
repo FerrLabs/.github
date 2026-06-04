@@ -290,14 +290,28 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           working-directory: ${{ inputs.working-directory }}
+      - name: Hand coverage to the SonarQube job
+        if: inputs.enable-sonar
+        uses: actions/upload-artifact@v5
+        with:
+          name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
+          path: ${{ inputs.working-directory }}/${{ inputs.coverage-tool == 'llvm-cov' && 'lcov.info' || 'cobertura.xml' }}
+          if-no-files-found: warn
+          retention-days: 1
 
   sonarqube:
     name: SonarQube
-    if: inputs.enable-sonar
+    # !cancelled() so analysis runs even when the coverage job is skipped
+    # (enable-coverage false / release commit) or fails — keep enable-coverage on
+    # for full reports.
+    if: inputs.enable-sonar && !cancelled()
+    needs: coverage
     uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.working-directory }}
       project-key: ${{ inputs.sonar-project-key }}
+      coverage-artifact: ${{ inputs.enable-coverage && format('sonar-coverage-{0}', inputs.sonar-project-key || github.event.repository.name) || '' }}
+      args: ${{ inputs.enable-coverage && (inputs.coverage-tool == 'llvm-cov' && '-Dsonar.rust.lcov.reportPaths=.sonarcov/lcov.info' || '-Dsonar.rust.cobertura.reportPaths=.sonarcov/cobertura.xml') || '' }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
