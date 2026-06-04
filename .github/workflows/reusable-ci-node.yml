@@ -99,6 +99,10 @@ on:
         description: 'Run SonarQube analysis (requires the SONAR_TOKEN secret)'
         type: boolean
         default: false
+      sonar-project-key:
+        description: 'SonarQube project key (defaults to the repo name; set per-call in monorepos to avoid colliding sub-projects)'
+        type: string
+        default: ''
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -202,5 +206,6 @@ jobs:
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.working-directory }}
+      project-key: ${{ inputs.sonar-project-key }}
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
