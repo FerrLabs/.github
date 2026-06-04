@@ -27,6 +27,10 @@ on:
         description: 'Flags appended to cargo invocations (clippy, test, build)'
         type: string
         default: '--all-features'
+      coverage-flags:
+        description: 'Flags for the coverage run (llvm-cov). Defaults to cargo-flags. Set separately when cargo-flags already carries --workspace, to avoid passing it twice to llvm-cov which rejects duplicates.'
+        type: string
+        default: ''
       clippy-args:
         description: 'Args after the `--` separator for clippy'
         type: string
@@ -280,7 +284,7 @@ jobs:
         if: inputs.coverage-tool == 'llvm-cov'
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
-        run: cargo llvm-cov ${{ inputs.cargo-flags }} --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov ${{ inputs.coverage-flags || inputs.cargo-flags }} --workspace --lcov --output-path lcov.info
       - name: Generate coverage (tarpaulin)
         if: inputs.coverage-tool == 'tarpaulin'
         env:
