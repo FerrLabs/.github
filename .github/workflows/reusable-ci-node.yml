@@ -107,6 +107,10 @@ on:
         description: 'Path to the lcov report (relative to working-directory) imported as SonarQube coverage'
         type: string
         default: 'coverage/lcov.info'
+      sonar-base-dir:
+        description: 'SonarQube projectBaseDir, when it differs from working-directory (e.g. pnpm-workspace monorepos that install from the root but analyse a sub-package). Defaults to working-directory.'
+        type: string
+        default: ''
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -220,7 +224,7 @@ jobs:
     uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
     with:
       runner: ${{ inputs.runner }}
-      working-directory: ${{ inputs.working-directory }}
+      working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}
       project-key: ${{ inputs.sonar-project-key }}
       coverage-artifact: ${{ (inputs.enable-test && format('sonar-coverage-{0}', inputs.sonar-project-key || github.event.repository.name)) || '' }}
       args: ${{ inputs.enable-test && '-Dsonar.javascript.lcov.reportPaths=.sonarcov/lcov.info' || '' }}
