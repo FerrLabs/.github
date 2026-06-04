@@ -306,10 +306,22 @@ jobs:
       # single repo-level Sonar scan (projectBaseDir=.) can merge several components.
       - name: Rebase lcov to repo root
         if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
+        env:
+          BASE: ${{ inputs.working-directory }}
         run: |
           mkdir -p "${{ runner.temp }}/sonarcov"
-          sed "s#^SF:#SF:${{ inputs.working-directory }}/#" lcov.info \
-            > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
+          # llvm-cov emits absolute SF: paths; strip $GITHUB_WORKSPACE to make them
+          # repo-root-relative (runner-independent). Relative paths (other tools)
+          # get the component dir prefixed instead.
+          awk -v ws="$GITHUB_WORKSPACE" -v base="$BASE" '
+            /^SF:/ {
+              p = substr($0, 4)
+              if (substr(p, 1, length(ws) + 1) == ws "/") p = substr(p, length(ws) + 2)
+              if (p !~ /^\//) { if (base != "." && substr(p, 1, length(base) + 1) != base "/") p = base "/" p }
+              print "SF:" p; next
+            }
+            { print }
+          ' lcov.info > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
       - name: Upload rebased lcov
         if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
         uses: actions/upload-artifact@v5
