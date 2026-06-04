@@ -31,6 +31,10 @@ on:
         description: 'Name of an uploaded artifact holding the coverage report (lcov). Downloaded into <working-directory>/.sonarcov before the scan so callers can point reportPaths at .sonarcov/<file> via args.'
         type: string
         default: ''
+      coverage-artifact-pattern:
+        description: 'Glob of coverage artifacts to download+merge into <working-directory>/.sonarcov (one project, several components). Each artifact should carry a uniquely-named, repo-root-rebased lcov; point reportPaths at .sonarcov/<name>.lcov via args.'
+        type: string
+        default: ''
     secrets:
       SONAR_TOKEN:
         required: true
@@ -57,6 +61,15 @@ jobs:
         continue-on-error: true
         with:
           name: ${{ inputs.coverage-artifact }}
+          path: ${{ inputs.working-directory }}/.sonarcov
+
+      - name: Download coverage reports (multi-component)
+        if: inputs.coverage-artifact-pattern != ''
+        uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          pattern: ${{ inputs.coverage-artifact-pattern }}
+          merge-multiple: true
           path: ${{ inputs.working-directory }}/.sonarcov
 
       - name: SonarQube scan

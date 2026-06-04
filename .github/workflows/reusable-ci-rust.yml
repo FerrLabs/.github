@@ -107,6 +107,10 @@ on:
         description: 'SonarQube project key (defaults to the repo name; set per-call in monorepos to avoid colliding sub-projects)'
         type: string
         default: ''
+      coverage-upload-as:
+        description: 'When set, upload this crate lcov (rebased to repo-root-relative paths) under this artifact name, for a single repo-level Sonar scan to merge. Use in monorepos instead of enable-sonar to avoid sub-projects.'
+        type: string
+        default: ''
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -296,6 +300,22 @@ jobs:
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
           path: ${{ inputs.working-directory }}/${{ inputs.coverage-tool == 'llvm-cov' && 'lcov.info' || 'cobertura.xml' }}
+          if-no-files-found: warn
+          retention-days: 1
+      # Monorepo path: rebase lcov SF: paths to repo-root-relative and upload so a
+      # single repo-level Sonar scan (projectBaseDir=.) can merge several components.
+      - name: Rebase lcov to repo root
+        if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
+        run: |
+          mkdir -p "${{ runner.temp }}/sonarcov"
+          sed "s#^SF:#SF:${{ inputs.working-directory }}/#" lcov.info \
+            > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
+      - name: Upload rebased lcov
+        if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ inputs.coverage-upload-as }}
+          path: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov
           if-no-files-found: warn
           retention-days: 1
 

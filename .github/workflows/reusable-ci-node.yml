@@ -111,6 +111,10 @@ on:
         description: 'SonarQube projectBaseDir, when it differs from working-directory (e.g. pnpm-workspace monorepos that install from the root but analyse a sub-package). Defaults to working-directory.'
         type: string
         default: ''
+      coverage-upload-as:
+        description: 'When set, upload this component lcov (rebased to repo-root-relative paths) under this artifact name, for a single repo-level Sonar scan to merge. Use in monorepos instead of enable-sonar to avoid sub-projects.'
+        type: string
+        default: ''
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -173,6 +177,22 @@ jobs:
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
           path: ${{ inputs.working-directory }}/${{ inputs.sonar-lcov-path }}
+          if-no-files-found: warn
+          retention-days: 1
+      # Monorepo path: rebase lcov SF: paths to repo-root-relative and upload so a
+      # single repo-level Sonar scan (projectBaseDir=.) can merge several components.
+      - name: Rebase lcov to repo root
+        if: inputs.coverage-upload-as != '' && inputs.enable-test
+        run: |
+          mkdir -p "${{ runner.temp }}/sonarcov"
+          sed "s#^SF:#SF:${{ inputs.working-directory }}/#" "${{ inputs.sonar-lcov-path }}" \
+            > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
+      - name: Upload rebased lcov
+        if: inputs.coverage-upload-as != '' && inputs.enable-test
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ inputs.coverage-upload-as }}
+          path: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov
           if-no-files-found: warn
           retention-days: 1
       - name: Build
