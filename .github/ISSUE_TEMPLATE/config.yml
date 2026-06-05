@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/FerrLabs/.github/blob/main/SECURITY.md
+    about: Do not open a public issue for security problems. Report privately instead.
+  - name: Question / support
+    url: https://github.com/FerrLabs/.github/blob/main/SUPPORT.md
+    about: For usage questions and help, see our support guide.
+  - name: FerrLabs website
+    url: https://ferrlabs.com
+    about: Product documentation and contact.
