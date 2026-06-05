@@ -1,0 +1,22 @@
+name: SonarQube
+
+# Scans this repository (the org-wide reusable workflows under
+# .github/workflows/) against the self-hosted SonarQube. The IaC analyzer
+# flags GitHub Actions security issues — injections via ${{ }}, over-broad
+# permissions, unpinned actions — right where the shared workflows live.
+#
+# Runs on a GitHub-hosted runner: this repo is public and the self-hosted
+# `ferrlabs-k8s` group has allows_public_repositories=false.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scan:
+    uses: ./.github/workflows/reusable-sonarqube-scan.yml
+    with:
+      runner: ubuntu-latest
+      project-key: ferrlabs-dotgithub
+    secrets: inherit
