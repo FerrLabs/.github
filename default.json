@@ -10,17 +10,23 @@
   "minimumReleaseAge": "1 day",
   "prConcurrentLimit": 10,
   "prHourlyLimit": 4,
-  "labels": ["dependencies"],
-  "platformAutomerge": false,
+  "labels": [
+    "dependencies"
+  ],
+  "platformAutomerge": true,
   "onboardingConfig": {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["github>FerrLabs/.github"]
+    "extends": [
+      "github>FerrLabs/.github"
+    ]
   },
   "onboardingConfigFileName": "renovate.json",
   "onboardingPrTitle": "chore: configure Renovate (extend FerrLabs preset)",
   "vulnerabilityAlerts": {
     "enabled": true,
-    "labels": ["security"],
+    "labels": [
+      "security"
+    ],
     "automerge": true,
     "automergeType": "pr",
     "automergeStrategy": "squash",
@@ -31,9 +37,15 @@
   "packageRules": [
     {
       "description": "FerrLabs npm packages — trust them, scan often, merge without delay. Override registry to GHCR (npm.pkg.github.com) since these packages aren't on npmjs.org. Auth comes from RENOVATE_HOST_RULES env in the runner workflow. internalChecksFilter:none skips the stability-days gate inherited from the global default.",
-      "matchPackagePatterns": ["^@ferrlabs/"],
-      "registryUrls": ["https://npm.pkg.github.com"],
-      "schedule": ["* * * * *"],
+      "matchPackagePatterns": [
+        "^@ferrlabs/"
+      ],
+      "registryUrls": [
+        "https://npm.pkg.github.com"
+      ],
+      "schedule": [
+        "* * * * *"
+      ],
       "minimumReleaseAge": "0",
       "internalChecksFilter": "none",
       "automerge": true,
@@ -43,9 +55,15 @@
     },
     {
       "description": "FerrLabs Kit crates pinned via git rev — scan often, merge without delay. Targets the depName the customManager below stamps (`FerrLabs/Kit`); `matchPackageNames` would compare against the packageName field (the full URL), so use matchDepNames here. internalChecksFilter:none skips stability-days.",
-      "matchManagers": ["custom.regex"],
-      "matchDepNames": ["FerrLabs/Kit"],
-      "schedule": ["* * * * *"],
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchDepNames": [
+        "FerrLabs/Kit"
+      ],
+      "schedule": [
+        "* * * * *"
+      ],
       "minimumReleaseAge": "0",
       "internalChecksFilter": "none",
       "automerge": true,
@@ -55,9 +73,15 @@
     },
     {
       "description": "FerrLabs Cargo crates published from Kit (`ferrlabs-*`) — same trust as @ferrlabs/ npm packages. No wait, automerge.",
-      "matchManagers": ["cargo"],
-      "matchDepPatterns": ["^ferrlabs-"],
-      "schedule": ["* * * * *"],
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchDepPatterns": [
+        "^ferrlabs-"
+      ],
+      "schedule": [
+        "* * * * *"
+      ],
       "minimumReleaseAge": "0",
       "internalChecksFilter": "none",
       "automerge": true,
@@ -67,10 +91,20 @@
     },
     {
       "description": "Third-party npm — wait 1 day after release before opening PR (supply-chain quarantine), auto-merge only if mergeConfidence is high/very-high",
-      "matchManagers": ["npm"],
-      "excludePackagePatterns": ["^@ferrlabs/"],
-      "matchUpdateTypes": ["patch", "minor"],
-      "matchMergeConfidence": ["high", "very high"],
+      "matchManagers": [
+        "npm"
+      ],
+      "excludePackagePatterns": [
+        "^@ferrlabs/"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "matchMergeConfidence": [
+        "high",
+        "very high"
+      ],
       "minimumReleaseAge": "1 day",
       "automerge": true,
       "automergeType": "pr",
@@ -78,9 +112,16 @@
     },
     {
       "description": "Third-party Cargo — wait 1 day after release before opening PR (no merge confidence on crates.io, so this is the main safety gate)",
-      "matchManagers": ["cargo"],
-      "excludeDepNames": ["/^ferrlabs-/"],
-      "matchUpdateTypes": ["patch", "minor"],
+      "matchManagers": [
+        "cargo"
+      ],
+      "excludeDepNames": [
+        "/^ferrlabs-/"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
       "minimumReleaseAge": "1 day",
       "automerge": true,
       "automergeType": "pr",
@@ -88,8 +129,12 @@
     },
     {
       "description": "GitHub Actions — wait 3 days after release (action authors often re-tag), grouped + auto-merge weekly",
-      "matchManagers": ["github-actions"],
-      "schedule": ["before 6am on monday"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "schedule": [
+        "before 6am on monday"
+      ],
       "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr",
@@ -98,8 +143,12 @@
     },
     {
       "description": "Dockerfile base images — wait 3 days, grouped + auto-merge weekly",
-      "matchManagers": ["dockerfile"],
-      "schedule": ["before 6am on monday"],
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "schedule": [
+        "before 6am on monday"
+      ],
       "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr",
@@ -108,7 +157,9 @@
     },
     {
       "description": "Major updates — always manual",
-      "matchUpdateTypes": ["major"],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "automerge": false
     }
   ],
@@ -116,7 +167,9 @@
     {
       "customType": "regex",
       "description": "FerrLabs Kit crates pinned via git rev = ... in Cargo.toml. Tracks the HEAD of `main` via the git-refs datasource — Kit publishes per-crate tags (ferrlabs-types-v0.4.0 etc.), not a single repo-wide semver tag, so github-tags doesn't fit. git-refs returns the SHA of refs/heads/main and Renovate bumps the rev= to it.",
-      "fileMatch": ["(^|/)Cargo\\.toml$"],
+      "fileMatch": [
+        "(^|/)Cargo\\.toml$"
+      ],
       "matchStrings": [
         "ferrlabs-[a-z\\-]+\\s*=\\s*\\{\\s*git\\s*=\\s*\"https://github.com/FerrLabs/Kit\\.git\"\\s*,\\s*rev\\s*=\\s*\"(?<currentDigest>[a-f0-9]+)\"\\s*\\}"
       ],
