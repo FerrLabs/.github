@@ -44,7 +44,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Install gitleaks
@@ -86,7 +86,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Detect Go module
         id: detect
         run: |
@@ -137,7 +137,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (!github.event.repository.private || inputs.run-on-private) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Install trufflehog
