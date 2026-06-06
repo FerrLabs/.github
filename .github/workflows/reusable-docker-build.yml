@@ -111,6 +111,15 @@ jobs:
     if: inputs.push
     runs-on: ${{ inputs.runner }}
     steps:
+      # Trivy reads ~/.docker/config.json to pull the image; without this a
+      # private GHCR image fails with a 401/manifest-unknown.
+      - name: Login to GHCR
+        if: startsWith(inputs.image-name, 'ghcr.io/')
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: ${{ inputs.image-name }}:${{ inputs.tag }}
@@ -158,6 +167,15 @@ jobs:
     if: inputs.push
     runs-on: ${{ inputs.runner }}
     steps:
+      # Syft pulls the image via the Docker keychain (~/.docker/config.json);
+      # a private GHCR image needs this login or the scan fails to fetch it.
+      - name: Login to GHCR
+        if: startsWith(inputs.image-name, 'ghcr.io/')
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: anchore/sbom-action@v0
         with:
           image: ${{ inputs.image-name }}@${{ needs.build.outputs.digest }}
