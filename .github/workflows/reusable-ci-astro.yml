@@ -20,6 +20,10 @@ on:
       install-args:
         type: string
         default: '--frozen-lockfile'
+      cache-dependency-path:
+        description: 'Lockfile path for the setup-node cache. Set to the root lockfile in pnpm-workspace monorepos where working-directory is a sub-package. Defaults to working-directory/pnpm-lock.yaml.'
+        type: string
+        default: ''
       registry-url:
         type: string
         default: 'https://npm.pkg.github.com'
@@ -111,7 +115,7 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: pnpm
-          cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+          cache-dependency-path: ${{ inputs.cache-dependency-path != '' && inputs.cache-dependency-path || format('{0}/pnpm-lock.yaml', inputs.working-directory) }}
           registry-url: ${{ inputs.registry-url }}
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
@@ -151,7 +155,7 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: pnpm
-          cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+          cache-dependency-path: ${{ inputs.cache-dependency-path != '' && inputs.cache-dependency-path || format('{0}/pnpm-lock.yaml', inputs.working-directory) }}
           registry-url: ${{ inputs.registry-url }}
           scope: ${{ inputs.registry-scope }}
       - name: Install dependencies
