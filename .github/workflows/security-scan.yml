@@ -1,0 +1,26 @@
+name: Security scan
+
+# Scans this repo (the org-wide reusable workflows live here) via the reusable
+# security-scan: gitleaks + osv-scanner + zizmor (GitHub Actions security) on
+# every push/PR, trufflehog deep-history on schedule. This replaces the old
+# SonarQube job, which had no GitHub Actions analyzer and so never delivered
+# the workflow analysis it was added for — zizmor does.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    name: Secrets + CVE + Actions
+    uses: ./.github/workflows/reusable-security-scan.yml
+    secrets: inherit
