@@ -156,6 +156,23 @@
       "groupName": "Docker images"
     },
     {
+      "description": "Kubernetes infra (Flux HelmReleases, Helm charts, manifest image tags) — auto-merge patch+minor after the 1-day quarantine. Majors stay manual (rule below).",
+      "matchManagers": [
+        "flux",
+        "helmv3",
+        "helm-values",
+        "kubernetes"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "minimumReleaseAge": "1 day",
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
       "description": "Major updates — always manual",
       "matchUpdateTypes": [
         "major"
