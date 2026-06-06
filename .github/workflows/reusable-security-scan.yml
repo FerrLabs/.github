@@ -159,15 +159,16 @@ jobs:
             echo "No .github/workflows — nothing for zizmor to scan."
             exit 0
           fi
-          set +e
-          zizmor --format sarif . > zizmor.sarif
-          EXIT=$?
-          set -e
-          if [ "${{ inputs.fail-on-actions }}" = "true" ]; then
-            exit $EXIT
-          fi
-          if [ "$EXIT" != "0" ]; then
-            echo "::warning::zizmor found GitHub Actions security issues — see the Security tab. Set fail-on-actions: true to make this blocking."
+          # zizmor exits 0 in SARIF mode even with findings, so gate on the
+          # finding count rather than the exit code.
+          zizmor --format sarif . > zizmor.sarif || true
+          COUNT=$(jq '[.runs[0].results[]] | length' zizmor.sarif 2>/dev/null || echo 0)
+          echo "zizmor findings: $COUNT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::warning::zizmor found $COUNT GitHub Actions security finding(s) — see the Security tab (SARIF). Set fail-on-actions: true to make this blocking."
+            if [ "${{ inputs.fail-on-actions }}" = "true" ]; then
+              exit 1
+            fi
           fi
       - name: Upload SARIF
         if: always() && hashFiles('zizmor.sarif') != ''
