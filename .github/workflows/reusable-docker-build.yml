@@ -129,7 +129,12 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
       - name: Upload SARIF
+        # Best-effort: code scanning upload needs GitHub Advanced Security,
+        # which isn't available on private repos without a GHAS licence. The
+        # real gate is trivy's exit-code:1 above; don't fail the build just
+        # because the Security-tab integration is unavailable.
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
