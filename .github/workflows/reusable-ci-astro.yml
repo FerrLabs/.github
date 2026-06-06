@@ -8,9 +8,9 @@ on:
         type: string
         default: '.'
       runner:
-        description: 'GitHub Actions runner label'
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s pool (ferrlabs-k8s-large for build/test jobs), public repos use ubuntu-latest.'
         type: string
-        default: 'ubuntu-latest'
+        default: ''
       node-version:
         type: string
         default: '24'
@@ -98,7 +98,7 @@ permissions:
 jobs:
   build:
     name: Build & Check
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -138,7 +138,7 @@ jobs:
   i18n:
     name: i18n parity
     if: inputs.enable-i18n
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -166,7 +166,7 @@ jobs:
     name: Lighthouse CI
     needs: build
     if: inputs.enable-lighthouse && (github.event_name == 'pull_request' || !inputs.lighthouse-only-pr)
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8

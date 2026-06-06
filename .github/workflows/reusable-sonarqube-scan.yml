@@ -8,9 +8,9 @@ on:
   workflow_call:
     inputs:
       runner:
-        description: 'Runner label'
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s pool (ferrlabs-k8s-large for build/test jobs), public repos use ubuntu-latest.'
         type: string
-        default: 'ferrlabs-k8s'
+        default: ''
       working-directory:
         description: 'Project root to analyse (sonar.projectBaseDir)'
         type: string
@@ -45,7 +45,7 @@ permissions:
 jobs:
   sonarqube:
     name: SonarQube analysis
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
