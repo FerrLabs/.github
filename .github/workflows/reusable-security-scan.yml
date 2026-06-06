@@ -23,6 +23,11 @@ on:
         type: boolean
         required: false
         default: false
+      fail-on-actions:
+        description: 'Fail the workflow on any GitHub Actions security finding from zizmor'
+        type: boolean
+        required: false
+        default: false
       runner:
         description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s pool (ferrlabs-k8s-large for build/test jobs), public repos use ubuntu-latest.'
         type: string
@@ -130,6 +135,46 @@ jobs:
         with:
           sarif_file: osv-results.sarif
           category: osv-scanner
+        continue-on-error: true
+
+  zizmor:
+    name: zizmor (GitHub Actions security)
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    if: ${{ !github.event.repository.private || inputs.run-on-private }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install zizmor
+        env:
+          PIP_BREAK_SYSTEM_PACKAGES: '1'
+        run: |
+          python3 -m pip install --user zizmor==1.25.2
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/zizmor" --version
+      - name: Run zizmor
+        env:
+          # Enables zizmor's online audits (e.g. unpinned/unhashed action refs).
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(ls -A .github/workflows 2>/dev/null)" ]; then
+            echo "No .github/workflows — nothing for zizmor to scan."
+            exit 0
+          fi
+          set +e
+          zizmor --format sarif . > zizmor.sarif
+          EXIT=$?
+          set -e
+          if [ "${{ inputs.fail-on-actions }}" = "true" ]; then
+            exit $EXIT
+          fi
+          if [ "$EXIT" != "0" ]; then
+            echo "::warning::zizmor found GitHub Actions security issues — see the Security tab. Set fail-on-actions: true to make this blocking."
+          fi
+      - name: Upload SARIF
+        if: always() && hashFiles('zizmor.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: zizmor.sarif
+          category: zizmor
         continue-on-error: true
 
   trufflehog:
