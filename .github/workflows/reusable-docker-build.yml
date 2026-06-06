@@ -31,6 +31,11 @@ on:
         type: string
         required: false
         default: ''
+      extra-tags:
+        description: 'Additional full image refs to tag, newline-separated (e.g. ghcr.io/ferrlabs/foo:sha-<gitsha> for traceability). Appended to <image-name>:<tag> and <image-name>:latest.'
+        type: string
+        required: false
+        default: ''
       trivy-severity:
         description: 'Trivy severities that fail the build'
         type: string
@@ -106,6 +111,7 @@ jobs:
           tags: |
             ${{ inputs.image-name }}:${{ inputs.tag }}
             ${{ inputs.image-name }}:latest
+            ${{ inputs.extra-tags }}
           build-args: ${{ inputs.build-args }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
