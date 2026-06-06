@@ -13,7 +13,7 @@
   "labels": [
     "dependencies"
   ],
-  "platformAutomerge": false,
+  "platformAutomerge": true,
   "onboardingConfig": {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
