@@ -8,9 +8,9 @@ on:
         type: string
         default: '.'
       runner:
-        description: 'GitHub Actions runner label'
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s pool (ferrlabs-k8s-large for build/test jobs), public repos use ubuntu-latest.'
         type: string
-        default: 'ubuntu-latest'
+        default: ''
       go-version-file:
         description: 'Path to go.mod (relative to working-directory)'
         type: string
@@ -92,7 +92,7 @@ permissions:
 jobs:
   detect:
     name: Detect Go module
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -117,7 +117,7 @@ jobs:
         github.event_name != 'push' ||
         !startsWith(github.event.head_commit.message, 'chore(release):')
       )
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -155,7 +155,7 @@ jobs:
         github.event_name != 'push' ||
         !startsWith(github.event.head_commit.message, 'chore(release):')
       )
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -208,7 +208,7 @@ jobs:
         github.event_name != 'push' ||
         !startsWith(github.event.head_commit.message, 'chore(release):')
       )
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -244,7 +244,7 @@ jobs:
         github.event_name != 'push' ||
         !startsWith(github.event.head_commit.message, 'chore(release):')
       )
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}

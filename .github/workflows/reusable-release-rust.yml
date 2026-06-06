@@ -23,10 +23,10 @@ on:
         required: false
         default: ''
       runner:
-        description: 'GitHub Actions runner label for the upload + publish jobs. Defaults to `ubuntu-latest` so public-repo consumers run on free GitHub-hosted runners.'
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s pool (ferrlabs-k8s-large for build/test jobs), public repos use ubuntu-latest.'
         type: string
         required: false
-        default: 'ubuntu-latest'
+        default: ''
     secrets:
       CARGO_REGISTRY_TOKEN:
         required: false
@@ -109,7 +109,7 @@ jobs:
   upload:
     name: Attest + upload assets
     needs: build
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
@@ -133,7 +133,7 @@ jobs:
     name: Publish crates.io
     needs: upload
     if: inputs.crate-publish
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable

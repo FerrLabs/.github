@@ -8,9 +8,9 @@ on:
         type: string
         default: '.'
       runner:
-        description: 'GitHub Actions runner label'
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s pool (ferrlabs-k8s-large for build/test jobs), public repos use ubuntu-latest.'
         type: string
-        default: 'ubuntu-latest'
+        default: ''
       node-version:
         description: 'Node.js version'
         type: string
@@ -134,7 +134,7 @@ permissions:
 jobs:
   test:
     name: Test & Build
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -215,7 +215,7 @@ jobs:
   quality:
     name: Quality (knip, madge, audit)
     if: inputs.enable-knip || inputs.enable-madge || inputs.enable-audit
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
