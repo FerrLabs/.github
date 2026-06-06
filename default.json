@@ -3,9 +3,9 @@
   "extends": [
     "config:recommended",
     "mergeConfidence:all-badges",
-    ":semanticCommits",
-    ":dependencyDashboard"
+    ":semanticCommits"
   ],
+  "dependencyDashboard": false,
   "rebaseWhen": "behind-base-branch",
   "minimumReleaseAge": "1 day",
   "prConcurrentLimit": 10,
