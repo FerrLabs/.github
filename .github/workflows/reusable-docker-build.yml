@@ -36,6 +36,11 @@ on:
         type: string
         required: false
         default: ''
+      smoke-test-cmd:
+        description: 'Shell command to functionally test the built image before it is pushed. When set, the image is built and loaded locally first (single-platform only — set platforms accordingly), this command runs with $SMOKE_IMAGE pointing at the loaded ref, and the registry push happens only if it passes. Empty = skip.'
+        type: string
+        required: false
+        default: ''
       trivy-severity:
         description: 'Trivy severities that fail the build'
         type: string
@@ -99,6 +104,24 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build for smoke test (load locally)
+        if: inputs.smoke-test-cmd != ''
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.context }}/${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platforms }}
+          load: true
+          push: false
+          tags: ${{ inputs.image-name }}:smoke
+          build-args: ${{ inputs.build-args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test
+        if: inputs.smoke-test-cmd != ''
+        env:
+          SMOKE_IMAGE: ${{ inputs.image-name }}:smoke
+        run: ${{ inputs.smoke-test-cmd }}
       - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         id: push
         with:
