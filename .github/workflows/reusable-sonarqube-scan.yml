@@ -47,7 +47,7 @@ jobs:
     name: SonarQube analysis
     runs-on: ${{ inputs.runner }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           # Full history so SonarQube can attribute new-code and blame.
           fetch-depth: 0
@@ -57,7 +57,7 @@ jobs:
       # to projectBaseDir) and the lcov's own SF: paths both resolve correctly.
       - name: Download coverage report
         if: inputs.coverage-artifact != ''
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         continue-on-error: true
         with:
           name: ${{ inputs.coverage-artifact }}
@@ -65,7 +65,7 @@ jobs:
 
       - name: Download coverage reports (multi-component)
         if: inputs.coverage-artifact-pattern != ''
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         continue-on-error: true
         with:
           pattern: ${{ inputs.coverage-artifact-pattern }}
@@ -73,7 +73,7 @@ jobs:
           path: ${{ inputs.working-directory }}/.sonarcov
 
       - name: SonarQube scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonar.ferrlabs.com' }}
