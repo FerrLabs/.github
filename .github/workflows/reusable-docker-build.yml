@@ -36,6 +36,11 @@ on:
         type: string
         required: false
         default: 'CRITICAL,HIGH'
+      trivy-exit-code:
+        description: "Exit code when trivy finds matching vulns ('1' = gate the build, '0' = report-only). Base-derived images with unpatchable upstream CVEs use '0'."
+        type: string
+        required: false
+        default: '1'
       push:
         description: 'Push the image to the registry'
         type: boolean
@@ -127,7 +132,7 @@ jobs:
           output: trivy-results.sarif
           severity: ${{ inputs.trivy-severity }}
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: ${{ inputs.trivy-exit-code }}
       - name: Upload SARIF
         # Best-effort: code scanning upload needs GitHub Advanced Security,
         # which isn't available on private repos without a GHAS licence. The
