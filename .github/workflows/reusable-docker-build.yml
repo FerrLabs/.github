@@ -165,7 +165,13 @@ jobs:
         run: |
           cosign sign --yes \
             "${{ inputs.image-name }}@${{ needs.build.outputs.digest }}"
-      - uses: actions/attest-build-provenance@v4
+      - name: Attest build provenance
+        # Best-effort: GitHub artifact attestations are an org-plan feature
+        # ("Feature not available for the … organization" otherwise). The
+        # cosign keyless signature above is the real signing; don't fail the
+        # build (and skip cosign) just because native provenance is off.
+        continue-on-error: true
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ inputs.image-name }}
           subject-digest: ${{ needs.build.outputs.digest }}
