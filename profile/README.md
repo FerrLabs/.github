@@ -14,14 +14,14 @@ We build small, opinionated CLIs and self-hostable backends for the parts of the
 
 ## Open source
 
-### [FerrFlow](https://github.com/FerrLabs/FerrFlow) · v4
+### [FerrFlow](https://github.com/FerrLabs/FerrFlow) · v5
 
 Universal semantic versioning. One Rust binary reads your conventional commits, bumps versions across your monorepo (14+ file formats — Cargo.toml, package.json, pyproject.toml, Chart.yaml, mix.exs, gemspec, pubspec.yaml, …), generates changelogs, tags, and ships GitHub releases. Free, MPL-2.0, drop into any CI.
 
 ```bash
 cargo install ferrflow
 # or
-uses: FerrLabs/FerrFlow@v4
+uses: FerrLabs/FerrFlow@v5
 ```
 
 → [Docs & playground at ferrflow.com](https://ferrflow.com)
