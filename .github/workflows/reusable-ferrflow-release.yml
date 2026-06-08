@@ -1,0 +1,75 @@
+name: Reusable — FerrFlow Release
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: >-
+          Override the runner label. Empty (default) auto-selects by repo
+          visibility: private repos use the self-hosted ferrlabs-k8s pool,
+          public repos use ubuntu-latest. This is what lets a repo flip
+          private <-> public without editing its release workflow.
+        type: string
+        required: false
+        default: ''
+      fetch-depth:
+        description: 'Checkout fetch-depth. 0 (full history) is required for commit analysis and changelog generation.'
+        type: number
+        required: false
+        default: 0
+      dry-run:
+        description: 'Run FerrFlow without creating releases or pushing changes.'
+        type: boolean
+        required: false
+        default: false
+      force-version:
+        description: 'Force a specific version (VERSION, or NAME@VERSION for monorepos). Empty = analyse commits.'
+        type: string
+        required: false
+        default: ''
+      trigger-renovate:
+        description: 'After a real release, dispatch the org Renovate scan so downstream consumers pick up the new version.'
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      RENOVATE_TOKEN:
+        required: false
+      FERRLABS_DISPATCH_TOKEN:
+        required: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    name: Release with FerrFlow
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
+      - uses: FerrLabs/FerrFlow@v5
+        with:
+          dry_run: ${{ inputs.dry-run }}
+          force_version: ${{ inputs.force-version }}
+          bot: true
+
+  trigger-renovate:
+    name: Trigger Renovate scan on consumers
+    needs: release
+    if: ${{ inputs.trigger-renovate && github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release):') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    steps:
+      - name: Dispatch Renovate workflow
+        env:
+          GH_TOKEN: ${{ secrets.RENOVATE_TOKEN || secrets.FERRLABS_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "RENOVATE_TOKEN / FERRLABS_DISPATCH_TOKEN not set — skipping Renovate trigger."
+            exit 0
+          fi
+          gh workflow run renovate.yml -R FerrLabs/.github

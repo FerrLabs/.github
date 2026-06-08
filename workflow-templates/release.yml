@@ -20,17 +20,7 @@ concurrency:
 
 jobs:
   release:
-    name: Run FerrFlow
-    runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore(release):')) ||
-      github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: FerrLabs/FerrFlow@v5
-        with:
-          dry_run: ${{ inputs.dry_run || false }}
-          bot: true
+    uses: FerrLabs/.github/.github/workflows/reusable-ferrflow-release.yml@main
+    with:
+      dry-run: ${{ inputs.dry_run || false }}
+    secrets: inherit
