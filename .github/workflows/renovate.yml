@@ -147,5 +147,10 @@ jobs:
                 "matchHost": "github.com",
                 "hostType": "git-refs",
                 "token": "${{ steps.app-token.outputs.token }}"
+              },
+              {
+                "matchHost": "crates.ferrlabs.com",
+                "hostType": "cargo",
+                "token": "${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}"
               }
             ]
