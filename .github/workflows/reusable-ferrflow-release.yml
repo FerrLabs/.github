@@ -48,10 +48,11 @@ jobs:
     if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           fetch-depth: ${{ inputs.fetch-depth }}
-      - uses: FerrLabs/FerrFlow@v5
+          persist-credentials: false
+      - uses: FerrLabs/FerrFlow@39550d4d65cb2a09192bef70a3257e1d80c795ad # v5
         with:
           dry_run: ${{ inputs.dry-run }}
           force_version: ${{ inputs.force-version }}
