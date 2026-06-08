@@ -300,7 +300,7 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Hand coverage to the SonarQube job
         if: inputs.enable-sonar
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
           path: ${{ inputs.working-directory }}/${{ inputs.coverage-tool == 'llvm-cov' && 'lcov.info' || 'cobertura.xml' }}
@@ -328,7 +328,7 @@ jobs:
           ' lcov.info > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
       - name: Upload rebased lcov
         if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.coverage-upload-as }}
           path: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov

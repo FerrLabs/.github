@@ -180,7 +180,7 @@ jobs:
           fail_ci_if_error: false
       - name: Hand coverage to the SonarQube job
         if: inputs.enable-sonar && inputs.enable-coverage
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
           path: ${{ inputs.working-directory }}/coverage.out
@@ -192,7 +192,7 @@ jobs:
       # SF: rebase is needed — Sonar resolves them against projectBaseDir directly.
       - name: Upload coverage for repo-level scan
         if: inputs.coverage-upload-as != '' && inputs.enable-coverage
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.coverage-upload-as }}
           path: ${{ inputs.working-directory }}/coverage.out

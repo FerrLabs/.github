@@ -173,7 +173,7 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Hand lcov to the SonarQube job
         if: inputs.enable-sonar && inputs.enable-test
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
           path: ${{ inputs.working-directory }}/${{ inputs.sonar-lcov-path }}
@@ -202,7 +202,7 @@ jobs:
           ' "$LCOV" > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
       - name: Upload rebased lcov
         if: inputs.coverage-upload-as != '' && inputs.enable-test
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.coverage-upload-as }}
           path: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov
