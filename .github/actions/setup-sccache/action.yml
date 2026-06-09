@@ -59,8 +59,11 @@ runs:
         SCCACHE_S3_SECRET: ${{ inputs.s3-secret }}
       run: |
         set -euo pipefail
+        # NOTE: RUSTC_WRAPPER is deliberately NOT set here. It is set only by the
+        # next step, and only if the sccache server actually reaches garage — so
+        # an unreachable/flaky backend degrades to a normal compile instead of
+        # breaking the build. A cache must never be a hard dependency of CI.
         {
-          echo "RUSTC_WRAPPER=sccache"
           # sccache and cargo's own incremental compilation are mutually
           # exclusive — incremental artifacts are never cached, so leaving it on
           # just wastes the wrapper. Off is also the CI-release default.
@@ -81,12 +84,15 @@ runs:
           echo "AWS_SECRET_ACCESS_KEY=${SCCACHE_S3_SECRET}"
         } >> "$GITHUB_ENV"
 
-    - name: Start sccache server and zero stats
+    # Try to bring up the sccache server (which round-trips to garage). Only on
+    # success do we enable RUSTC_WRAPPER for the rest of the job. On failure
+    # (garage down, transient CoreDNS hiccup, bad creds) we log a warning and
+    # leave RUSTC_WRAPPER unset, so cargo compiles normally — the build still
+    # passes, just without the shared cache. Never `exit 1` here.
+    - name: Enable sccache if garage is reachable
       if: ${{ runner.environment == 'self-hosted' }}
       shell: bash
       env:
-        RUSTC_WRAPPER: sccache
-        CARGO_INCREMENTAL: '0'
         SCCACHE_BUCKET: ${{ inputs.bucket }}
         SCCACHE_ENDPOINT: ${{ inputs.endpoint }}
         SCCACHE_REGION: ${{ inputs.region }}
@@ -95,9 +101,20 @@ runs:
         AWS_ACCESS_KEY_ID: ${{ inputs.s3-key }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.s3-secret }}
       run: |
-        set -euo pipefail
-        # Fails fast here (rather than mid-build) if garage is unreachable or the
-        # creds are wrong — the start-server probe round-trips to the bucket.
-        sccache --start-server
-        sccache --zero-stats
+        set -uo pipefail
+        ok=""
+        # A few attempts smooth over transient CoreDNS / startup blips.
+        for attempt in 1 2 3; do
+          if sccache --start-server; then ok=1; break; fi
+          echo "sccache start attempt ${attempt} failed; retrying..." >&2
+          sccache --stop-server >/dev/null 2>&1 || true
+          sleep 3
+        done
+        if [ -n "${ok}" ]; then
+          sccache --zero-stats || true
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+          echo "sccache active → ${SCCACHE_ENDPOINT}/${SCCACHE_BUCKET}"
+        else
+          echo "::warning title=sccache disabled::garage unreachable (${SCCACHE_ENDPOINT}) — building without sccache; CI continues normally."
+        fi
         echo "sccache server up, talking to ${{ inputs.endpoint }}/${{ inputs.bucket }}"
