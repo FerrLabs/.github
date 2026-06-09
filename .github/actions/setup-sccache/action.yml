@@ -1,0 +1,95 @@
+name: Setup sccache (garage S3)
+description: >-
+  Install sccache and wire it to the in-cluster garage S3 backend so compiled
+  Rust artifacts are shared across runs and repositories. Unlike Swatinem
+  rust-cache (which snapshots the whole target/ keyed on Cargo.lock and so
+  misses entirely on any dependency bump), sccache caches each crate
+  compilation individually — a Renovate bump only recompiles the one crate that
+  changed, everything else is a cache hit pulled from garage.
+
+  Pair this with `Swatinem/rust-cache` configured with `cache-targets: false`:
+  rust-cache then restores only ~/.cargo (registry/index/git, i.e. sources),
+  and sccache owns the compiled artifacts. Do NOT let rust-cache also cache
+  target/ — a warm target/ makes cargo skip compilation entirely, so sccache
+  records ~0 requests and you can't tell whether it works.
+
+inputs:
+  s3-key:
+    description: 'garage S3 access key id (SCCACHE_S3_KEY secret)'
+    required: true
+  s3-secret:
+    description: 'garage S3 secret key (SCCACHE_S3_SECRET secret)'
+    required: true
+  bucket:
+    description: 'garage bucket holding the cache'
+    required: false
+    default: 'sccache'
+  endpoint:
+    description: 'garage S3 endpoint (host:port, no scheme)'
+    required: false
+    default: 'garage.ferrlabs.svc.cluster.local:3900'
+  region:
+    description: "garage s3_region (NOT 'garage' — the cluster uses 'ferrlabs')"
+    required: false
+    default: 'ferrlabs'
+  key-prefix:
+    description: >-
+      Optional object-key prefix. Leave empty to share one cache across all
+      repos (the point of a central cache). Set it only to isolate a repo.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Install sccache
+      uses: mozilla-actions/sccache-action@v0.0.10
+
+    - name: Configure sccache → garage S3
+      shell: bash
+      env:
+        SCCACHE_S3_KEY: ${{ inputs.s3-key }}
+        SCCACHE_S3_SECRET: ${{ inputs.s3-secret }}
+      run: |
+        set -euo pipefail
+        {
+          echo "RUSTC_WRAPPER=sccache"
+          # sccache and cargo's own incremental compilation are mutually
+          # exclusive — incremental artifacts are never cached, so leaving it on
+          # just wastes the wrapper. Off is also the CI-release default.
+          echo "CARGO_INCREMENTAL=0"
+          echo "SCCACHE_BUCKET=${{ inputs.bucket }}"
+          echo "SCCACHE_ENDPOINT=${{ inputs.endpoint }}"
+          echo "SCCACHE_REGION=${{ inputs.region }}"
+          # garage on :3900 is plain HTTP inside the cluster.
+          echo "SCCACHE_S3_USE_SSL=false"
+          # Keep the server alive for the whole job so --show-stats reflects the
+          # full run (default idle shutdown would reset the counters mid-job).
+          echo "SCCACHE_IDLE_TIMEOUT=0"
+          if [ -n "${{ inputs.key-prefix }}" ]; then
+            echo "SCCACHE_S3_KEY_PREFIX=${{ inputs.key-prefix }}"
+          fi
+          # sccache reads S3 creds from the standard AWS env vars.
+          echo "AWS_ACCESS_KEY_ID=${SCCACHE_S3_KEY}"
+          echo "AWS_SECRET_ACCESS_KEY=${SCCACHE_S3_SECRET}"
+        } >> "$GITHUB_ENV"
+
+    - name: Start sccache server and zero stats
+      shell: bash
+      env:
+        RUSTC_WRAPPER: sccache
+        CARGO_INCREMENTAL: '0'
+        SCCACHE_BUCKET: ${{ inputs.bucket }}
+        SCCACHE_ENDPOINT: ${{ inputs.endpoint }}
+        SCCACHE_REGION: ${{ inputs.region }}
+        SCCACHE_S3_USE_SSL: 'false'
+        SCCACHE_IDLE_TIMEOUT: '0'
+        AWS_ACCESS_KEY_ID: ${{ inputs.s3-key }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.s3-secret }}
+      run: |
+        set -euo pipefail
+        # Fails fast here (rather than mid-build) if garage is unreachable or the
+        # creds are wrong — the start-server probe round-trips to the bucket.
+        sccache --start-server
+        sccache --zero-stats
+        echo "sccache server up, talking to ${{ inputs.endpoint }}/${{ inputs.bucket }}"
