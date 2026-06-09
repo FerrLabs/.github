@@ -42,10 +42,17 @@ inputs:
 runs:
   using: composite
   steps:
+    # All steps are gated on self-hosted runners: the garage S3 backend lives at
+    # garage.ferrlabs.svc.cluster.local, reachable only from in-cluster
+    # ferrlabs-k8s runners. On github-hosted runners (ubuntu-latest, public
+    # repos) every step is skipped and this action is a safe no-op — cargo
+    # builds normally with whatever rust-cache provides.
     - name: Install sccache
+      if: ${{ runner.environment == 'self-hosted' }}
       uses: mozilla-actions/sccache-action@v0.0.10
 
     - name: Configure sccache → garage S3
+      if: ${{ runner.environment == 'self-hosted' }}
       shell: bash
       env:
         SCCACHE_S3_KEY: ${{ inputs.s3-key }}
@@ -75,6 +82,7 @@ runs:
         } >> "$GITHUB_ENV"
 
     - name: Start sccache server and zero stats
+      if: ${{ runner.environment == 'self-hosted' }}
       shell: bash
       env:
         RUSTC_WRAPPER: sccache
