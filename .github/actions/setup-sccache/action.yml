@@ -7,11 +7,15 @@ description: >-
   compilation individually — a Renovate bump only recompiles the one crate that
   changed, everything else is a cache hit pulled from garage.
 
-  Pair this with `Swatinem/rust-cache` configured with `cache-targets: false`:
-  rust-cache then restores only ~/.cargo (registry/index/git, i.e. sources),
-  and sccache owns the compiled artifacts. Do NOT let rust-cache also cache
-  target/ — a warm target/ makes cargo skip compilation entirely, so sccache
-  records ~0 requests and you can't tell whether it works.
+  Keep `Swatinem/rust-cache` with its default `cache-targets: true`. The two are
+  complementary, not exclusive: when the Cargo.lock is unchanged, rust-cache
+  restores target/ and cargo skips compilation (~10 min, sccache barely used);
+  when the lock changes (Renovate bump) rust-cache misses entirely and target/
+  comes up empty, so cargo recompiles everything — and THAT is where sccache
+  serves ~100% hits from garage (~16 min instead of a ~60 min cold rebuild).
+  Same for cross-repo cold starts on a fresh runner. Net: no regression on the
+  common case, a large win on bumps. (Set cache-targets:false only to MEASURE
+  sccache in isolation, never in production.)
 
 inputs:
   s3-key:
