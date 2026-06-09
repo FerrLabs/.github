@@ -158,6 +158,15 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ inputs.working-directory }}
+          # self-hosted: sccache (next step) owns target/; elsewhere keep caching it
+          cache-targets: ${{ runner.environment != 'self-hosted' }}
+      # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
+      - name: Setup sccache (garage S3)
+        if: inputs.cache
+        uses: FerrLabs/.github/.github/actions/setup-sccache@main
+        with:
+          s3-key: ${{ secrets.SCCACHE_S3_KEY }}
+          s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - name: Format check
         if: inputs.check-fmt
         run: cargo fmt --check
@@ -276,6 +285,15 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ inputs.working-directory }}
+          # self-hosted: sccache (next step) owns target/; elsewhere keep caching it
+          cache-targets: ${{ runner.environment != 'self-hosted' }}
+      # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
+      - name: Setup sccache (garage S3)
+        if: inputs.cache
+        uses: FerrLabs/.github/.github/actions/setup-sccache@main
+        with:
+          s3-key: ${{ secrets.SCCACHE_S3_KEY }}
+          s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - if: inputs.coverage-tool == 'llvm-cov'
         uses: taiki-e/install-action@v2
         with:
