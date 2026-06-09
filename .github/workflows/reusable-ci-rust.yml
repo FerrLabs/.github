@@ -158,8 +158,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ inputs.working-directory }}
-          # self-hosted: sccache (next step) owns target/; elsewhere keep caching it
-          cache-targets: ${{ runner.environment != 'self-hosted' }}
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
@@ -285,8 +283,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ inputs.working-directory }}
-          # self-hosted: sccache (next step) owns target/; elsewhere keep caching it
-          cache-targets: ${{ runner.environment != 'self-hosted' }}
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
