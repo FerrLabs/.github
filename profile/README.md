@@ -34,16 +34,23 @@ Kubernetes operator (Go) that syncs FerrVault SaaS secrets into native `kind: Se
 
 - **[Fixtures](https://github.com/FerrLabs/Fixtures)** — declarative git fixture generator. Spin up reproducible repos in CI for integration tests and benchmarks.
 - **[Benchmarks](https://github.com/FerrLabs/Benchmarks)** — reusable GitHub Action that runs the FerrFlow perf suite and reports regressions on every PR.
+- **[MCP](https://github.com/FerrLabs/MCP)** — Model Context Protocol server. Lets AI assistants drive the FerrLabs suite — trigger releases, query Kubernetes, read GitHub state.
 
-## Coming soon
+## The suite
 
-| | What | Status |
+The rest of the toolkit is SaaS. One FerrLabs org, one bill, per-product subscriptions — and FerrFlow stays free inside every org.
+
+| | What | |
 |---|---|---|
-| **FerrVault** | Secrets management without the infra. SaaS or self-host, K8s-native via the operator above. | beta |
-| **FerrTrack** | Issue tracker for product teams. Keyboard-first, git-aware, no SLAs or AI summaries you didn't ask for. | soon |
-| **FerrGrowth** | Marketing sites with built-in SEO, performance budgets, content automation. | soon |
+| **FerrVault** | Secrets management without the infra. K8s-native via the [operator](https://github.com/FerrLabs/FerrVault) above. | [ferrvault.com](https://ferrvault.com) |
+| **FerrTrack** | Issue tracker for product teams. Keyboard-first, git-aware, anti-Jira — no SLAs or AI summaries you didn't ask for. | [ferrtrack.com](https://ferrtrack.com) |
+| **FerrGrowth** | Marketing sites with built-in SEO, performance budgets, forms, and analytics. | [ferrgrowth.com](https://ferrgrowth.com) |
+| **FerrFleet** | Agent fleet runtime. AI agents that orchestrate the FerrLabs suite — and a general-purpose agent platform you can actually trust. | [ferrfleet.com](https://ferrfleet.com) |
+| **FerrLens** | Free web tools — SEO checker, DNS lookup, SPF/DKIM/DMARC, TLS analyzer, dev utilities. *See your stack clearly.* | [ferrlens.com](https://ferrlens.com) |
 
-The web apps for these live behind closed doors today; the open-source pieces (operators, CLIs, shared crates) land here as they ship.
+## Also from FerrLabs
+
+- **[FerrGames](https://ferrgames.com)** — small multiplayer party games to play with friends. Free, in the browser, no account needed.
 
 ## Principles
 
