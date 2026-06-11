@@ -65,6 +65,10 @@ on:
       digest:
         description: 'Image digest (sha256:...)'
         value: ${{ jobs.build.outputs.digest }}
+    secrets:
+      packages-read:
+        description: 'GHCR token with read:packages, for installing private @ferrlabs/* npm or other authenticated fetches during the build. Exposed to BuildKit as a secret (id=packages-read) via --mount=type=secret, never as a build-arg, so it never lands in an image layer or the build log. In the Dockerfile: RUN --mount=type=secret,id=packages-read,env=NODE_AUTH_TOKEN pnpm install.'
+        required: false
 
 permissions:
   contents: read
@@ -115,6 +119,7 @@ jobs:
           push: false
           tags: ${{ inputs.image-name }}:smoke
           build-args: ${{ inputs.build-args }}
+          secrets: ${{ secrets.packages-read != '' && format('packages-read={0}', secrets.packages-read) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Smoke test
@@ -136,6 +141,7 @@ jobs:
             ${{ inputs.image-name }}:latest
             ${{ inputs.extra-tags }}
           build-args: ${{ inputs.build-args }}
+          secrets: ${{ secrets.packages-read != '' && format('packages-read={0}', secrets.packages-read) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
