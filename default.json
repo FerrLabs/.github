@@ -8,8 +8,8 @@
   "dependencyDashboard": false,
   "rebaseWhen": "behind-base-branch",
   "minimumReleaseAge": "1 day",
-  "prConcurrentLimit": 10,
-  "prHourlyLimit": 4,
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
   "labels": [
     "dependencies"
   ],
