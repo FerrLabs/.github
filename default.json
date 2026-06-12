@@ -7,6 +7,7 @@
   ],
   "dependencyDashboard": false,
   "rebaseWhen": "behind-base-branch",
+  "recreateWhen": "always",
   "minimumReleaseAge": "1 day",
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
