@@ -52,7 +52,17 @@ jobs:
         with:
           fetch-depth: ${{ inputs.fetch-depth }}
           persist-credentials: false
+      # Rust workspaces (the -Cloud api packages) carry a FerrFlow postBump
+      # hook that runs `cargo update` to sync Cargo.lock after the version
+      # bump. The release runner has no Rust by default, so install it when the
+      # repo has a Cargo.toml.
+      - if: ${{ hashFiles('**/Cargo.toml') != '' }}
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
       - uses: FerrLabs/FerrFlow@39550d4d65cb2a09192bef70a3257e1d80c795ad # v5
+        env:
+          # Lets cargo-based postBump hooks read the private Kellnr index.
+          # Empty (and unused) for repos that don't consume Kellnr.
+          CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
         with:
           dry_run: ${{ inputs.dry-run }}
           force_version: ${{ inputs.force-version }}
