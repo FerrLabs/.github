@@ -166,7 +166,7 @@ jobs:
         run: ${{ inputs.script-runner }} ${{ inputs.test-script }}
       - name: Upload coverage
         if: inputs.enable-test && inputs.coverage-upload
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
