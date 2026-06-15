@@ -173,7 +173,7 @@ jobs:
           if [ "${{ inputs.enable-coverage }}" = "true" ]; then ARGS="$ARGS -coverprofile=coverage.out"; fi
           go test $ARGS ${{ inputs.test-paths }}
       - if: inputs.enable-coverage
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           files: ${{ inputs.working-directory }}/coverage.out
           token: ${{ secrets.CODECOV_TOKEN }}
