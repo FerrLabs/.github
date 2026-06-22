@@ -58,7 +58,7 @@ jobs:
       # repo has a Cargo.toml.
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-      - uses: FerrLabs/FerrFlow@f6b2a3c7b80b7bc8d63a1b5ac9bf8111a6b5bfa4 # v5.7.0
+      - uses: FerrLabs/FerrFlow@23b0feba97cba96a1e934fbbb3936675c506c4ec # v5.16.0
         env:
           # Lets cargo-based postBump hooks read the private Kellnr index.
           # Empty (and unused) for repos that don't consume Kellnr.
