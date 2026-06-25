@@ -114,6 +114,13 @@ jobs:
           RENOVATE_AUTODISCOVER_FILTER: ${{ inputs.repoFilter || 'FerrLabs/*' }}
           RENOVATE_PLATFORM: "github"
           RENOVATE_REPOSITORY_CACHE: "enabled"
+          # Private Kellnr cargo registry, declared via env so Renovate's
+          # `cargo update` lockfile runs resolve it. The registry lives in each
+          # repo's api/.cargo/config.toml, but Renovate invokes cargo from the
+          # repo root where that subdir config isn't discovered ("registry index
+          # was not found: kellnr") — env vars are honoured regardless of cwd.
+          CARGO_REGISTRIES_KELLNR_INDEX: "sparse+https://crates.ferrlabs.com/api/v1/crates/"
+          CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
           # Identity of every commit / PR / issue Renovate makes. Format
           # `<numeric-app-id>+<bot-slug>[bot]@users.noreply.github.com`
           # is the GitHub-canonical bot author. The numeric prefix is
