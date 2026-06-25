@@ -122,6 +122,8 @@ on:
         required: false
       SONAR_TOKEN:
         required: false
+      CARGO_REGISTRIES_KELLNR_TOKEN:
+        required: false
 
 permissions:
   contents: read
@@ -133,6 +135,8 @@ env:
 jobs:
   test:
     name: Test
+    env:
+      CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
     if: |
       !inputs.skip-on-release-commit ||
       github.event_name != 'push' ||
@@ -181,6 +185,8 @@ jobs:
 
   security:
     name: Cargo Security
+    env:
+      CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
     if: |
       (inputs.enable-audit || inputs.enable-deny || inputs.enable-machete) && (
         !inputs.skip-on-release-commit ||
@@ -257,6 +263,8 @@ jobs:
 
   coverage:
     name: Coverage
+    env:
+      CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
     if: |
       inputs.enable-coverage && (
         !inputs.skip-on-release-commit ||
