@@ -22,10 +22,10 @@ on:
         required: false
         default: 'Dockerfile'
       platforms:
-        description: 'Comma-separated build platforms'
+        description: 'Comma-separated build platforms. Multi-arch needs binfmt/qemu registered on the runner; the self-hosted ARC runners build linux/amd64 only.'
         type: string
         required: false
-        default: 'linux/amd64,linux/arm64'
+        default: 'linux/amd64'
       build-args:
         description: 'Newline-separated build args (KEY=VALUE)'
         type: string
@@ -99,51 +99,72 @@ jobs:
       digest: ${{ steps.push.outputs.digest }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+      # The self-hosted ARC runners have buildah, not a Docker daemon — so we
+      # build/push with buildah (not docker/buildx). The cosign / Trivy / SBOM
+      # jobs below pull the pushed image from the registry, so they need no
+      # daemon either. packages-read is exposed to the build as a BuildKit-style
+      # `--mount=type=secret,id=packages-read`, never as a build-arg.
       - name: Login to GHCR
         if: startsWith(inputs.image-name, 'ghcr.io/')
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build for smoke test (load locally)
-        if: inputs.smoke-test-cmd != ''
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
-        with:
-          context: ${{ inputs.context }}
-          file: ${{ inputs.context }}/${{ inputs.dockerfile }}
-          platforms: ${{ inputs.platforms }}
-          load: true
-          push: false
-          tags: ${{ inputs.image-name }}:smoke
-          build-args: ${{ inputs.build-args }}
-          secrets: ${{ secrets.packages-read != '' && format('packages-read={0}', secrets.packages-read) || '' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: Smoke test
-        if: inputs.smoke-test-cmd != ''
         env:
-          SMOKE_IMAGE: ${{ inputs.image-name }}:smoke
-        run: ${{ inputs.smoke-test-cmd }}
-      - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: buildah login -u "${{ github.actor }}" --password-stdin ghcr.io <<< "$GHCR_TOKEN"
+      - name: Build & push (buildah)
         id: push
-        with:
-          context: ${{ inputs.context }}
-          file: ${{ inputs.context }}/${{ inputs.dockerfile }}
-          platforms: ${{ inputs.platforms }}
-          push: ${{ inputs.push }}
-          provenance: mode=max
-          sbom: true
-          tags: |
-            ${{ inputs.image-name }}:${{ inputs.tag }}
-            ${{ inputs.image-name }}:latest
-            ${{ inputs.extra-tags }}
-          build-args: ${{ inputs.build-args }}
-          secrets: ${{ secrets.packages-read != '' && format('packages-read={0}', secrets.packages-read) || '' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        env:
+          IMAGE: ${{ inputs.image-name }}
+          TAG: ${{ inputs.tag }}
+          CONTEXT: ${{ inputs.context }}
+          DOCKERFILE: ${{ inputs.dockerfile }}
+          PLATFORMS: ${{ inputs.platforms }}
+          BUILD_ARGS: ${{ inputs.build-args }}
+          EXTRA_TAGS: ${{ inputs.extra-tags }}
+          PUSH: ${{ inputs.push }}
+          SMOKE_CMD: ${{ inputs.smoke-test-cmd }}
+          PACKAGES_READ: ${{ secrets.packages-read }}
+        run: |
+          set -euo pipefail
+
+          secret_args=()
+          if [ -n "${PACKAGES_READ:-}" ]; then
+            printf '%s' "$PACKAGES_READ" > "$RUNNER_TEMP/packages-read"
+            secret_args=(--secret "id=packages-read,src=$RUNNER_TEMP/packages-read")
+          fi
+
+          build_arg_args=()
+          while IFS= read -r line; do
+            [ -n "$line" ] && build_arg_args+=(--build-arg "$line")
+          done <<< "${BUILD_ARGS:-}"
+
+          buildah build \
+            --isolation=chroot --layers \
+            --platform "$PLATFORMS" \
+            "${secret_args[@]}" "${build_arg_args[@]}" \
+            --manifest "$IMAGE:$TAG" \
+            -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
+
+          rm -f "$RUNNER_TEMP/packages-read"
+
+          if [ -n "${SMOKE_CMD:-}" ]; then
+            echo "::group::smoke test"
+            SMOKE_IMAGE="$IMAGE:$TAG" bash -euo pipefail -c "$SMOKE_CMD"
+            echo "::endgroup::"
+          fi
+
+          if [ "$PUSH" != "true" ]; then
+            echo "digest=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          buildah manifest push --all --digestfile "$RUNNER_TEMP/digest" \
+            "$IMAGE:$TAG" "docker://$IMAGE:$TAG"
+          buildah manifest push --all "$IMAGE:$TAG" "docker://$IMAGE:latest"
+          while IFS= read -r ref; do
+            [ -z "$ref" ] && continue
+            buildah manifest push --all "$IMAGE:$TAG" "docker://$ref"
+          done <<< "${EXTRA_TAGS:-}"
+
+          echo "digest=$(cat "$RUNNER_TEMP/digest")" >> "$GITHUB_OUTPUT"
 
   trivy:
     name: Trivy (CVE scan)
