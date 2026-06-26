@@ -56,6 +56,11 @@ on:
         type: boolean
         required: false
         default: true
+      push-retries:
+        description: 'How many times to retry each manifest push if the registry returns a transient error (5xx, network reset). Backoff is 10s, 30s, 90s, … capped at 5 min. Set to 1 to disable retries.'
+        type: number
+        required: false
+        default: 3
       runner:
         description: 'GitHub Actions runner label for the build job (the heavy one). Private consumers pass `ferrlabs-k8s`; public consumers leave the default.'
         type: string
@@ -120,6 +125,7 @@ jobs:
           BUILD_ARGS: ${{ inputs.build-args }}
           EXTRA_TAGS: ${{ inputs.extra-tags }}
           PUSH: ${{ inputs.push }}
+          PUSH_RETRIES: ${{ inputs.push-retries }}
           SMOKE_CMD: ${{ inputs.smoke-test-cmd }}
           PACKAGES_READ: ${{ secrets.packages-read }}
         run: |
@@ -156,12 +162,36 @@ jobs:
             exit 0
           fi
 
-          buildah manifest push --all --digestfile "$RUNNER_TEMP/digest" \
+          # GHCR push periodically returns 504 Gateway Timeout or resets the
+          # connection mid-manifest. The build itself is fine; only the manifest
+          # upload flaps. Retry each push N times with exponential backoff
+          # (10s, 30s, 90s, capped at 300s) before failing the job.
+          retries="${PUSH_RETRIES:-3}"
+          retry_push() {
+            local attempt=1
+            local delay=10
+            while true; do
+              if "$@"; then
+                return 0
+              fi
+              if [ "$attempt" -ge "$retries" ]; then
+                echo "::error::manifest push failed after $attempt attempt(s): $*"
+                return 1
+              fi
+              echo "::warning::manifest push attempt $attempt failed, retrying in ${delay}s"
+              sleep "$delay"
+              attempt=$((attempt + 1))
+              delay=$((delay * 3))
+              [ "$delay" -gt 300 ] && delay=300
+            done
+          }
+
+          retry_push buildah manifest push --all --digestfile "$RUNNER_TEMP/digest" \
             "$IMAGE:$TAG" "docker://$IMAGE:$TAG"
-          buildah manifest push --all "$IMAGE:$TAG" "docker://$IMAGE:latest"
+          retry_push buildah manifest push --all "$IMAGE:$TAG" "docker://$IMAGE:latest"
           while IFS= read -r ref; do
             [ -z "$ref" ] && continue
-            buildah manifest push --all "$IMAGE:$TAG" "docker://$ref"
+            retry_push buildah manifest push --all "$IMAGE:$TAG" "docker://$ref"
           done <<< "${EXTRA_TAGS:-}"
 
           echo "digest=$(cat "$RUNNER_TEMP/digest")" >> "$GITHUB_OUTPUT"
