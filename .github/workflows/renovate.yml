@@ -52,8 +52,38 @@ concurrency:
 permissions: {}
 
 jobs:
+  plan:
+    name: Plan shards
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      # A manual repoFilter collapses to one `manual` shard; a scheduled run
+      # fans out into disjoint shards (cloud platforms vs the rest) so the
+      # full FerrLabs/* sweep runs in parallel instead of ~17 repos serially.
+      - name: Compute shard matrix
+        id: plan
+        env:
+          REPO_FILTER: ${{ inputs.repoFilter }}
+        run: |
+          set -euo pipefail
+          if [ -n "${REPO_FILTER}" ]; then
+            matrix=$(jq -cn --arg f "${REPO_FILTER}" '{include:[{shard:"manual",filter:$f}]}')
+          else
+            matrix='{"include":[{"shard":"cloud","filter":"FerrLabs/*-Cloud"},{"shard":"rest","filter":"FerrLabs/*,!FerrLabs/*-Cloud"}]}'
+          fi
+          echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
+
   renovate:
-    name: Run Renovate
+    name: Run Renovate (${{ matrix.shard }})
+    needs: plan
+    # Shards are mutually exclusive (a repo is either *-Cloud or not) and the
+    # `rest` catch-all owns any new repo, so nothing is processed twice and
+    # nothing is silently dropped. fail-fast off so one shard can't cancel
+    # the other mid-sweep.
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     # GitHub-hosted runner: free for this public repo, and the self-hosted
     # `ferrlabs-k8s` group has allows_public_repositories=false (security
     # default — don't expose the k8s cluster to public-repo workflows).
@@ -113,7 +143,7 @@ jobs:
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_AUTODISCOVER: "true"
-          RENOVATE_AUTODISCOVER_FILTER: ${{ inputs.repoFilter || 'FerrLabs/*' }}
+          RENOVATE_AUTODISCOVER_FILTER: ${{ matrix.filter }}
           RENOVATE_PLATFORM: "github"
           RENOVATE_REPOSITORY_CACHE: "enabled"
           # Private Kellnr cargo registry, declared via env so Renovate's
