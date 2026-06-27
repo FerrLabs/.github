@@ -239,7 +239,11 @@ jobs:
     name: cosign (sign + attest)
     needs: [build, trivy]
     if: inputs.push
-    runs-on: ${{ inputs.runner }}
+    # cosign-installer needs `envsubst` (gettext), which the minimal self-hosted
+    # ARC runners don't ship — it fails with "envsubst: command not found".
+    # Signing only touches the remote GHCR digest, so pin to a GitHub-hosted
+    # runner (same rationale as the hadolint job above).
+    runs-on: ubuntu-latest
     steps:
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Login to GHCR
