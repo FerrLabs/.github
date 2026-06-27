@@ -95,6 +95,10 @@ jobs:
         with:
           dockerfile: ${{ inputs.context }}/${{ inputs.dockerfile }}
           failure-threshold: warning
+          # DL3008 (apt) / DL3018 (apk): pinning OS package versions is
+          # impractical — Debian/Alpine point releases supersede them and exact
+          # pins break the build. Every other warning still fails the gate.
+          ignore: DL3008,DL3018
 
   build:
     name: Build & push
