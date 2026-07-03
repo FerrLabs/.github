@@ -8,6 +8,11 @@ on:
         type: string
         required: false
         default: ''
+      sast-config:
+        description: 'OpenGrep ruleset for the SAST job. A path/URL passed to `opengrep scan -f`. Empty (default) shallow-clones the community `opengrep/opengrep-rules` set.'
+        type: string
+        required: false
+        default: ''
       osv-scan-args:
         description: 'Extra args for osv-scanner'
         type: string
@@ -25,6 +30,11 @@ on:
         default: false
       fail-on-actions:
         description: 'Fail the workflow on any GitHub Actions security finding from zizmor'
+        type: boolean
+        required: false
+        default: false
+      fail-on-sast:
+        description: 'Fail the workflow on any SAST finding from OpenGrep'
         type: boolean
         required: false
         default: false
@@ -145,6 +155,65 @@ jobs:
         with:
           sarif_file: osv-results.sarif
           category: osv-scanner
+        continue-on-error: true
+
+  opengrep:
+    name: opengrep (SAST)
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    if: ${{ !github.event.repository.private || inputs.run-on-private }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install OpenGrep
+        run: |
+          VERSION=1.9.0
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL "https://github.com/opengrep/opengrep/releases/download/v${VERSION}/opengrep_manylinux_x86" \
+            -o "$RUNNER_TEMP/bin/opengrep"
+          chmod +x "$RUNNER_TEMP/bin/opengrep"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/opengrep" --version
+      - name: Resolve ruleset
+        id: rules
+        env:
+          SAST_CONFIG: ${{ inputs.sast-config }}
+        run: |
+          if [ -n "$SAST_CONFIG" ]; then
+            echo "path=$SAST_CONFIG" >> "$GITHUB_OUTPUT"
+          else
+            # OpenGrep bundles no rules; the Semgrep registry `auto` shorthand is
+            # not reliably available on the fork, so we ship the community set.
+            git clone --depth 1 https://github.com/opengrep/opengrep-rules.git "$RUNNER_TEMP/opengrep-rules"
+            echo "path=$RUNNER_TEMP/opengrep-rules" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run OpenGrep
+        run: |
+          set +e
+          opengrep scan \
+            --sarif-output=opengrep.sarif \
+            --error \
+            -f "${{ steps.rules.outputs.path }}" \
+            .
+          EXIT=$?
+          set -e
+          echo "opengrep exit: $EXIT"
+          # opengrep/semgrep: 0 = clean, 1 = findings, >=2 = internal error.
+          if [ "$EXIT" -ge 2 ]; then
+            echo "::warning::OpenGrep errored (exit $EXIT) — not failing the scan."
+            exit 0
+          fi
+          if [ "$EXIT" = "1" ]; then
+            echo "::warning::OpenGrep found SAST issues — see the Security tab (SARIF). Set fail-on-sast: true to make this blocking."
+            if [ "${{ inputs.fail-on-sast }}" = "true" ]; then
+              exit 1
+            fi
+          fi
+          exit 0
+      - name: Upload SARIF
+        if: always() && hashFiles('opengrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: opengrep.sarif
+          category: opengrep
         continue-on-error: true
 
   zizmor:

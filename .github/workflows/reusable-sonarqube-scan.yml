@@ -35,6 +35,14 @@ on:
         description: 'Glob of coverage artifacts to download+merge into <working-directory>/.sonarcov (one project, several components). Each artifact should carry a uniquely-named, repo-root-rebased lcov; point reportPaths at .sonarcov/<name>.lcov via args.'
         type: string
         default: ''
+      sast:
+        description: 'Run OpenGrep (SAST) + gitleaks and import their findings into SonarQube as external issues (dashboard consolidation). Report-only — never fails the scan on its own.'
+        type: boolean
+        default: false
+      sast-config:
+        description: 'OpenGrep ruleset for the SAST import (path/URL for `opengrep scan -f`). Empty clones the community opengrep/opengrep-rules set.'
+        type: string
+        default: ''
     secrets:
       SONAR_TOKEN:
         required: true
@@ -72,6 +80,18 @@ jobs:
           merge-multiple: true
           path: ${{ inputs.working-directory }}/.sonarcov
 
+      # OpenGrep (SAST) + gitleaks → SonarQube external issues. Report-only; the
+      # findings surface on the Sonar project alongside the SARIF the security-scan
+      # workflow already sends to the GitHub Security tab. Runs before the scan so
+      # the generated report is on disk when sonar-scanner reads it.
+      - name: SAST → SonarQube external issues
+        id: sast
+        if: inputs.sast
+        uses: FerrLabs/.github/actions/sast-external-issues@main
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          sast-config: ${{ inputs.sast-config }}
+
       - name: SonarQube scan
         uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8
         env:
@@ -82,4 +102,5 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ inputs.project-key || github.event.repository.name }}
             -Dsonar.exclusions=${{ inputs.exclusions }}
+            ${{ steps.sast.outputs.scanner-args }}
             ${{ inputs.args }}

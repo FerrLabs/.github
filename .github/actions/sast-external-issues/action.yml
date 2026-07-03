@@ -1,0 +1,92 @@
+name: SAST → SonarQube external issues
+description: >-
+  Run OpenGrep (SAST) and gitleaks (secrets) on the checked-out repo and convert
+  their SARIF into the SonarQube Generic Issue Import format, so the findings
+  surface as external issues on the SonarQube project (dashboard consolidation,
+  no DefectDojo). Complements the SARIF the security-scan workflow already sends
+  to the GitHub Security tab. Outputs the sonar-scanner arg to wire into the
+  scan step.
+
+inputs:
+  working-directory:
+    description: 'Project root that will be analysed (must match sonar.projectBaseDir).'
+    required: false
+    default: '.'
+  sast-config:
+    description: >-
+      OpenGrep ruleset — a path/URL passed to `opengrep scan -f`. Empty (default)
+      shallow-clones the community `opengrep/opengrep-rules` set, since OpenGrep
+      bundles no rules and the Semgrep registry `auto` shorthand is not reliably
+      available on the fork.
+    required: false
+    default: ''
+  opengrep-version:
+    description: 'Pinned OpenGrep release version.'
+    required: false
+    default: '1.9.0'
+  gitleaks-version:
+    description: 'Pinned gitleaks release version (kept in sync with reusable-security-scan).'
+    required: false
+    default: '8.21.2'
+  output-file:
+    description: 'Report path, relative to working-directory, for the generic issue JSON.'
+    required: false
+    default: 'sonar-external-issues.json'
+
+outputs:
+  scanner-args:
+    description: 'sonar-scanner arg enabling the external issues report (empty string if nothing was produced).'
+    value: ${{ steps.convert.outputs.args }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install OpenGrep + gitleaks
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/sast-bin"
+        curl -fsSL "https://github.com/opengrep/opengrep/releases/download/v${{ inputs.opengrep-version }}/opengrep_manylinux_x86" \
+          -o "$RUNNER_TEMP/sast-bin/opengrep"
+        curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${{ inputs.gitleaks-version }}/gitleaks_${{ inputs.gitleaks-version }}_linux_x64.tar.gz" \
+          | tar -xz -C "$RUNNER_TEMP/sast-bin" gitleaks
+        chmod +x "$RUNNER_TEMP/sast-bin/opengrep" "$RUNNER_TEMP/sast-bin/gitleaks"
+        echo "$RUNNER_TEMP/sast-bin" >> "$GITHUB_PATH"
+
+    - name: Run scanners + convert to Sonar generic issues
+      id: convert
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        SAST_CONFIG: ${{ inputs.sast-config }}
+        OUTPUT_FILE: ${{ inputs.output-file }}
+      run: |
+        # Report-only: the scanners never fail this action. Blocking gates stay
+        # the caller's job (fail-on-* in reusable-security-scan / the quality gate).
+        set +e
+        if [ -n "$SAST_CONFIG" ]; then
+          RULES="$SAST_CONFIG"
+        else
+          git clone --depth 1 https://github.com/opengrep/opengrep-rules.git "$RUNNER_TEMP/opengrep-rules" \
+            && RULES="$RUNNER_TEMP/opengrep-rules"
+        fi
+        if [ -n "${RULES:-}" ]; then
+          opengrep scan --sarif-output=opengrep.sarif -f "$RULES" .
+        else
+          echo "::warning::Could not resolve an OpenGrep ruleset — skipping SAST, keeping secrets scan."
+        fi
+        gitleaks detect --source . --redact --report-format sarif --report-path gitleaks.sarif
+        set -e
+
+        FILES=""
+        [ -s opengrep.sarif ] && FILES="$FILES opengrep.sarif"
+        [ -s gitleaks.sarif ] && FILES="$FILES gitleaks.sarif"
+        if [ -n "$FILES" ]; then
+          jq -s -f "$GITHUB_ACTION_PATH/sarif-to-sonar.jq" $FILES > "$OUTPUT_FILE"
+          echo "args=-Dsonar.externalIssuesReportPaths=$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
+          echo "SAST → SonarQube external issues summary:"
+          jq '{rules: (.rules | length), issues: (.issues | length)}' "$OUTPUT_FILE"
+        else
+          echo "args=" >> "$GITHUB_OUTPUT"
+          echo "No SARIF produced — no external issues to import."
+        fi
