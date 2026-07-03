@@ -28,6 +28,16 @@ on:
         type: boolean
         required: false
         default: false
+      fail-on-snyk:
+        description: 'Fail the workflow on vulnerabilities found by Snyk. Quota-exhaustion and Snyk errors never fail regardless of this.'
+        type: boolean
+        required: false
+        default: false
+      snyk-test-args:
+        description: 'Extra args for `snyk test` (e.g. `--all-projects --severity-threshold=high`)'
+        type: string
+        required: false
+        default: '--all-projects'
       runner:
         description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s pool (ferrlabs-k8s-large for build/test jobs), public repos use ubuntu-latest.'
         type: string
@@ -215,3 +225,58 @@ jobs:
           path: trufflehog.json
           retention-days: 14
           if-no-files-found: ignore
+
+  snyk:
+    name: snyk (deps)
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    if: ${{ !github.event.repository.private || inputs.run-on-private }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Guard on SNYK_TOKEN
+        id: guard
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "::notice::SNYK_TOKEN not set — skipping Snyk scan (soft pass)."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install Snyk CLI
+        if: steps.guard.outputs.run == 'true'
+        run: npm install -g snyk@1
+      - name: Run snyk test (soft-pass on quota / errors)
+        if: steps.guard.outputs.run == 'true'
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          set +e
+          OUT=$(snyk test ${{ inputs.snyk-test-args }} --sarif-file-output=snyk.sarif 2>&1)
+          EXIT=$?
+          set -e
+          echo "$OUT"
+          # Monthly private-test quota exhaustion must never show as a failing check.
+          if echo "$OUT" | grep -qiE "used your limit|monthly limit|test limit|reached your.*limit|limit of (private )?tests"; then
+            echo "::warning::Snyk test quota exhausted — soft pass. Raise the plan quota or wait for the monthly reset."
+            exit 0
+          fi
+          # snyk exit codes: 0 = no vulns, 1 = vulns found, 2 = error, 3 = no supported projects.
+          if [ "$EXIT" -ge 2 ]; then
+            echo "::warning::Snyk errored (exit $EXIT) — not failing the scan."
+            exit 0
+          fi
+          if [ "$EXIT" = "1" ]; then
+            echo "::warning::Snyk found vulnerabilities — see the Security tab (SARIF). Set fail-on-snyk: true to make this blocking."
+            if [ "${{ inputs.fail-on-snyk }}" = "true" ]; then
+              exit 1
+            fi
+          fi
+          exit 0
+      - name: Upload SARIF
+        if: always() && hashFiles('snyk.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: snyk.sarif
+          category: snyk
+        continue-on-error: true
