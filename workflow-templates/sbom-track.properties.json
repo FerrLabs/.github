@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — SBOM → Dependency-Track",
+  "description": "Generates a CycloneDX SBOM with Trivy and uploads it to the self-hosted OWASP Dependency-Track (dtrack.ferrlabs.com) for dependency-CVE analysis. Project auto-created per repo. Needs the DTRACK_API_KEY org secret.",
+  "iconName": "ferrlabs",
+  "categories": ["Security"],
+  "filePatterns": [".*"]
+}
