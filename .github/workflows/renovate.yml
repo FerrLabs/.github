@@ -58,31 +58,70 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
-      # A manual repoFilter collapses to one `manual` shard; a scheduled run
-      # fans out into disjoint shards (cloud platforms vs the rest) so the
-      # full FerrLabs/* sweep runs in parallel instead of ~17 repos serially.
+      # App token (not GITHUB_TOKEN) — needed to enumerate the private org
+      # repos when fanning out one shard per live *-Cloud repo.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.RENOVATE_APP_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: FerrLabs
+      # A manual repoFilter collapses to one `manual` shard. A scheduled run
+      # fans out into disjoint shards, computed from the live repo list:
+      #   - one shard per non-archived *-Cloud repo (each is a heavy
+      #     api+web+docker monorepo, worth isolating so one slow/failing repo
+      #     doesn't hold up the rest),
+      #   - grouped shards for tools / libs / infra,
+      #   - a `rest` catch-all owning every other non-archived repo.
+      # Shards are mutually exclusive and jointly exhaustive: a repo lands in
+      # exactly one, and any new repo not matching a named group falls into
+      # `rest`, so nothing is processed twice and nothing is silently dropped.
       - name: Compute shard matrix
         id: plan
         env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO_FILTER: ${{ inputs.repoFilter }}
         run: |
           set -euo pipefail
           if [ -n "${REPO_FILTER}" ]; then
             matrix=$(jq -cn --arg f "${REPO_FILTER}" '{include:[{shard:"manual",filter:$f}]}')
-          else
-            matrix='{"include":[{"shard":"cloud","filter":"FerrLabs/*-Cloud"},{"shard":"rest","filter":"FerrLabs/*,!FerrLabs/*-Cloud"}]}'
+            echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
+            exit 0
           fi
+
+          repos=$(gh api --paginate "orgs/FerrLabs/repos?per_page=100&type=all" \
+            --jq '[.[] | select(.archived == false) | .name]')
+
+          matrix=$(jq -cn \
+            --argjson repos "${repos}" \
+            --argjson tools '["FerrFlow","FerrVault","Benchmarks","Fixtures",".github","MCP","Changelog"]' \
+            --argjson libs  '["Claude-Agents","actions-runner-image","UI","Kit"]' \
+            --argjson infra '["Infra","Kubernetes"]' '
+            def flt($xs): [$xs[] | "FerrLabs/" + .] | join(",");
+            ($tools + $libs + $infra) as $named
+            | ($repos | map(select(endswith("-Cloud")))) as $cloud
+            | ($repos | map(select((endswith("-Cloud") | not) and (($named | index(.)) | not)))) as $rest
+            | { include:
+                  ($cloud | map({shard: ., filter: ("FerrLabs/" + .)}))
+                  + [ {shard:"tools", filter: flt($tools)},
+                      {shard:"libs",  filter: flt($libs)},
+                      {shard:"infra", filter: flt($infra)} ]
+                  + (if ($rest | length) > 0 then [{shard:"rest", filter: flt($rest)}] else [] end)
+              }')
           echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
 
   renovate:
     name: Run Renovate (${{ matrix.shard }})
     needs: plan
-    # Shards are mutually exclusive (a repo is either *-Cloud or not) and the
-    # `rest` catch-all owns any new repo, so nothing is processed twice and
-    # nothing is silently dropped. fail-fast off so one shard can't cancel
-    # the other mid-sweep.
+    # Shards are disjoint (a repo lands in exactly one), so nothing is
+    # processed twice or dropped. fail-fast off so one shard can't cancel the
+    # others mid-sweep. max-parallel caps concurrent Renovate legs — with one
+    # shard per *-Cloud repo plus the grouped shards this is ~12 legs, and
+    # unthrottled they'd trip GitHub's secondary rate limits.
     strategy:
       fail-fast: false
+      max-parallel: 6
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     # GitHub-hosted runner: free for this public repo, and the self-hosted
     # `ferrlabs-k8s` group has allows_public_repositories=false (security
