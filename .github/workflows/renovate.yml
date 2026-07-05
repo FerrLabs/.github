@@ -153,12 +153,16 @@ jobs:
           # was not found: kellnr") — env vars are honoured regardless of cwd.
           CARGO_REGISTRIES_KELLNR_INDEX: "sparse+https://crates.ferrlabs.com/api/v1/crates/"
           CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
-          # Identity of every commit / PR / issue Renovate makes. Format
-          # `<numeric-app-id>+<bot-slug>[bot]@users.noreply.github.com`
-          # is the GitHub-canonical bot author. The numeric prefix is
-          # what GitHub needs to attribute correctly in the timeline UI;
-          # the bot-id env var is set from the token-mint step's output.
-          RENOVATE_GIT_AUTHOR: "${{ steps.app-token.outputs.app-slug }}[bot] <${{ steps.app-token.outputs.bot-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com>"
+          # Identity Renovate must recognise as its own so it keeps
+          # auto-rebasing its PRs instead of assuming a human edited them.
+          # Must byte-match the author GitHub attributes to the App bot when
+          # it commits via the API: `<bot-user-id>+<slug>[bot]@users.noreply.github.com`.
+          # create-github-app-token exposes no bot/user-id output (only token,
+          # installation-id, app-slug), so the previous `outputs.bot-id` was
+          # empty — the malformed author never matched the real commits and
+          # Renovate blocked every rebase. The bot user id (282300760) is
+          # immutable for this App, so it is pinned here.
+          RENOVATE_GIT_AUTHOR: "${{ steps.app-token.outputs.app-slug }}[bot] <282300760+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com>"
           RENOVATE_USERNAME: "${{ steps.app-token.outputs.app-slug }}[bot]"
           # Auth for GHCR npm registry (where @ferrlabs/* live). The npm
           # hostRule uses GITHUB_TOKEN (not the App token): App installation
