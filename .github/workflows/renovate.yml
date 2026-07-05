@@ -95,7 +95,7 @@ jobs:
 
           matrix=$(jq -cn \
             --argjson repos "${repos}" \
-            --argjson tools '["FerrFlow","FerrVault","Benchmarks","Fixtures",".github","MCP","Changelog"]' \
+            --argjson tools '["FerrFlow","FerrVault","Benchmarks","Fixtures",".github","MCP","Changelog","Status"]' \
             --argjson libs  '["Claude-Agents","actions-runner-image","UI","Kit"]' \
             --argjson infra '["Infra","Kubernetes"]' '
             def flt($xs): [$xs[] | "FerrLabs/" + .] | join(",");
