@@ -106,13 +106,13 @@ jobs:
             ($tools + $libs + $infra) as $named
             | ($repos | map(select(endswith("-Cloud")))) as $cloud
             | ($repos | map(select((endswith("-Cloud") | not) and (($named | index(.)) | not)))) as $rest
-            | { include:
-                  ($cloud | map({shard: ., filter: ("FerrLabs/" + .)}))
-                  + [ {shard:"tools", filter: flt($tools)},
-                      {shard:"libs",  filter: flt($libs)},
-                      {shard:"infra", filter: flt($infra)} ]
-                  + (if ($rest | length) > 0 then [{shard:"rest", filter: flt($rest)}] else [] end)
-              }')
+            | ( ($cloud | map({shard: ., filter: ("FerrLabs/" + .)}))
+                + [ {shard: "tools", filter: (flt($tools))},
+                    {shard: "libs",  filter: (flt($libs))},
+                    {shard: "infra", filter: (flt($infra))} ]
+                + (if ($rest | length) > 0 then [{shard: "rest", filter: (flt($rest))}] else [] end)
+              ) as $inc
+            | {include: $inc}')
           echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
 
   renovate:
