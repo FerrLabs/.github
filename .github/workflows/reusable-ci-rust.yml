@@ -166,9 +166,11 @@ jobs:
     env:
       CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
     if: |
-      !inputs.skip-on-release-commit ||
-      github.event_name != 'push' ||
-      !startsWith(github.event.head_commit.message, 'chore(release):')
+      (inputs.check-fmt || inputs.check-clippy || inputs.run-tests) && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
     defaults:
       run:
