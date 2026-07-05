@@ -115,6 +115,34 @@ on:
         description: 'When set, upload this crate lcov (rebased to repo-root-relative paths) under this artifact name, for a single repo-level Sonar scan to merge. Use in monorepos instead of enable-sonar to avoid sub-projects.'
         type: string
         default: ''
+      run-integration-tests:
+        description: 'Run a DB-backed integration step against the shared CI Postgres (postgres-ci in ns github-runner). Creates a fresh per-run database, runs the tests, drops it. Runs on the normal ferrlabs-k8s pool (Postgres is external, so the large pool is not needed).'
+        type: boolean
+        default: false
+      integration-args:
+        description: 'Full args passed to `cargo test` for the integration step (e.g. `--features integration --test idor_scoping -- --ignored`).'
+        type: string
+        default: ''
+      integration-runner:
+        description: 'Runner for the integration job. Empty auto-selects ferrlabs-k8s (normal pool) for private repos.'
+        type: string
+        default: ''
+      integration-db-host:
+        description: 'Host of the shared CI Postgres.'
+        type: string
+        default: 'postgres-ci.github-runner.svc.cluster.local'
+      integration-db-port:
+        description: 'Port of the shared CI Postgres.'
+        type: string
+        default: '5432'
+      integration-db-user:
+        description: 'Superuser of the shared CI Postgres (trust auth, no password).'
+        type: string
+        default: 'postgres'
+      integration-db-env:
+        description: 'Name of the env var the tests read the database URL from.'
+        type: string
+        default: 'TEST_DATABASE_URL'
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -138,9 +166,11 @@ jobs:
     env:
       CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
     if: |
-      !inputs.skip-on-release-commit ||
-      github.event_name != 'push' ||
-      !startsWith(github.event.head_commit.message, 'chore(release):')
+      (inputs.check-fmt || inputs.check-clippy || inputs.run-tests) && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
     defaults:
       run:
@@ -182,6 +212,81 @@ jobs:
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
         run: cargo test ${{ inputs.cargo-flags }} ${{ inputs.test-args }}
+
+  # DB-backed integration tests. Postgres is provided out-of-band by the shared
+  # `postgres-ci` pod (ns github-runner) instead of being apt-installed inside
+  # the runner, so this job runs on the normal `ferrlabs-k8s` pool rather than
+  # the scarce `-large` one. Each run gets an isolated, throwaway database.
+  integration:
+    name: Integration Tests
+    if: |
+      inputs.run-integration-tests && (
+        !inputs.skip-on-release-commit ||
+        github.event_name != 'push' ||
+        !startsWith(github.event.head_commit.message, 'chore(release):')
+      )
+    env:
+      CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
+      PGHOST: ${{ inputs.integration-db-host }}
+      PGPORT: ${{ inputs.integration-db-port }}
+      PGUSER: ${{ inputs.integration-db-user }}
+    runs-on: ${{ inputs.integration-runner != '' && inputs.integration-runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v7
+      - if: inputs.apt-packages != '' && runner.os == 'Linux'
+        name: Install apt packages
+        env:
+          APT_PACKAGES: ${{ inputs.apt-packages }}
+        run: |
+          if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends $APT_PACKAGES
+      - name: Install postgresql-client
+        run: |
+          if command -v createdb >/dev/null 2>&1; then exit 0; fi
+          if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
+          $SUDO apt-get update
+          $SUDO apt-get install -y --no-install-recommends postgresql-client
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+          components: ${{ inputs.rust-components }}
+          targets: ${{ inputs.rust-targets }}
+      - if: inputs.cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.working-directory }}
+          # sccache owns target/ — double-caching it thrashes disk (see the
+          # runner lost-comms incident that first motivated this split).
+          cache-targets: false
+      # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
+      - name: Setup sccache (garage S3)
+        if: inputs.cache
+        uses: FerrLabs/.github/.github/actions/setup-sccache@main
+        with:
+          s3-key: ${{ secrets.SCCACHE_S3_KEY }}
+          s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
+      - name: Create per-run database
+        env:
+          DB_ENV_NAME: ${{ inputs.integration-db-env }}
+        run: |
+          set -euo pipefail
+          DB="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_${RANDOM}"
+          echo "Creating throwaway database $DB on ${PGHOST}:${PGPORT}"
+          createdb "$DB"
+          echo "CI_DB_NAME=$DB" >> "$GITHUB_ENV"
+          echo "${DB_ENV_NAME}=postgres://${PGUSER}@${PGHOST}:${PGPORT}/${DB}" >> "$GITHUB_ENV"
+      - name: Integration tests
+        env:
+          FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
+          INTEGRATION_ARGS: ${{ inputs.integration-args }}
+        run: cargo test $INTEGRATION_ARGS
+      - name: Drop per-run database
+        if: always() && env.CI_DB_NAME != ''
+        run: dropdb --if-exists "$CI_DB_NAME"
 
   security:
     name: Cargo Security
