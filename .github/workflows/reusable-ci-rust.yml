@@ -238,10 +238,12 @@ jobs:
       - uses: actions/checkout@v7
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
+        env:
+          APT_PACKAGES: ${{ inputs.apt-packages }}
         run: |
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
-          $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
+          $SUDO apt-get install -y --no-install-recommends $APT_PACKAGES
       - name: Install postgresql-client
         run: |
           if command -v createdb >/dev/null 2>&1; then exit 0; fi
@@ -268,17 +270,20 @@ jobs:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - name: Create per-run database
+        env:
+          DB_ENV_NAME: ${{ inputs.integration-db-env }}
         run: |
           set -euo pipefail
           DB="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_${RANDOM}"
           echo "Creating throwaway database $DB on ${PGHOST}:${PGPORT}"
           createdb "$DB"
           echo "CI_DB_NAME=$DB" >> "$GITHUB_ENV"
-          echo "${{ inputs.integration-db-env }}=postgres://${PGUSER}@${PGHOST}:${PGPORT}/${DB}" >> "$GITHUB_ENV"
+          echo "${DB_ENV_NAME}=postgres://${PGUSER}@${PGHOST}:${PGPORT}/${DB}" >> "$GITHUB_ENV"
       - name: Integration tests
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
-        run: cargo test ${{ inputs.integration-args }}
+          INTEGRATION_ARGS: ${{ inputs.integration-args }}
+        run: cargo test $INTEGRATION_ARGS
       - name: Drop per-run database
         if: always() && env.CI_DB_NAME != ''
         run: dropdb --if-exists "$CI_DB_NAME"
