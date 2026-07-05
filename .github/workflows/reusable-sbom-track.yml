@@ -1,0 +1,118 @@
+name: Reusable — SBOM → Dependency-Track
+
+# Generates a CycloneDX SBOM with Trivy (one universal generator across
+# Rust/Node/Java/Python/Go) and uploads it to the self-hosted OWASP
+# Dependency-Track (https://dtrack.ferrlabs.com), which then runs the
+# dependency-CVE analysis. The DT project is auto-created on first upload
+# (name = repo, version = branch/tag). Opt-in per repo, like the SonarQube scan.
+#
+# Requires the org secret DTRACK_API_KEY (a DT API key whose team holds
+# BOM_UPLOAD + PROJECT_CREATION_UPLOAD + VIEW_PORTFOLIO). Soft-passes if unset.
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        description: 'Dependency-Track project name (defaults to the repository name).'
+        type: string
+        default: ''
+      project-version:
+        description: 'Dependency-Track project version (defaults to the branch/tag that triggered the run).'
+        type: string
+        default: ''
+      working-directory:
+        description: 'Directory Trivy scans for lockfiles/manifests.'
+        type: string
+        default: '.'
+      dtrack-url:
+        description: 'Base URL of the Dependency-Track API server.'
+        type: string
+        default: 'https://dtrack.ferrlabs.com'
+      trivy-args:
+        description: 'Extra args for `trivy fs` (e.g. --skip-dirs test/fixtures).'
+        type: string
+        default: ''
+      trivy-version:
+        description: 'Pinned Trivy release version.'
+        type: string
+        default: '0.72.0'
+      runner:
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private → ferrlabs-k8s, public → ubuntu-latest.'
+        type: string
+        default: ''
+      run-on-private:
+        description: 'Run on private repos too. SBOM upload is cheap and the target is self-hosted, so this defaults to true (unlike the best-effort GitHub-hosted security scans).'
+        type: boolean
+        default: true
+    secrets:
+      DTRACK_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    name: SBOM → Dependency-Track
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    if: ${{ !github.event.repository.private || inputs.run-on-private }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Guard on DTRACK_API_KEY
+        id: guard
+        env:
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+        run: |
+          if [ -z "$DTRACK_API_KEY" ]; then
+            echo "::notice::DTRACK_API_KEY not set — skipping SBOM upload (soft pass)."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Trivy
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          VERSION="${{ inputs.trivy-version }}"
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-64bit.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP/bin" trivy
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/trivy" --version
+
+      - name: Generate CycloneDX SBOM
+        if: steps.guard.outputs.run == 'true'
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          # SBOM only — Dependency-Track does the vulnerability correlation, so
+          # Trivy just inventories packages (no vuln DB needed here).
+          trivy fs \
+            --format cyclonedx \
+            --output "$RUNNER_TEMP/sbom.cdx.json" \
+            ${{ inputs.trivy-args }} \
+            .
+          echo "SBOM components: $(jq '(.components // []) | length' "$RUNNER_TEMP/sbom.cdx.json")"
+
+      - name: Upload SBOM to Dependency-Track
+        if: steps.guard.outputs.run == 'true'
+        env:
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+          DT_URL: ${{ inputs.dtrack-url }}
+          PROJECT_NAME: ${{ inputs.project-name || github.event.repository.name }}
+          PROJECT_VERSION: ${{ inputs.project-version || github.ref_name }}
+        run: |
+          # Report-only: never fail the pipeline on an upload hiccup.
+          code=$(curl -s -o "$RUNNER_TEMP/dt-resp.txt" -w "%{http_code}" \
+            -X POST "$DT_URL/api/v1/bom" \
+            -H "X-Api-Key: $DTRACK_API_KEY" \
+            -F "autoCreate=true" \
+            -F "projectName=$PROJECT_NAME" \
+            -F "projectVersion=$PROJECT_VERSION" \
+            -F "bom=@$RUNNER_TEMP/sbom.cdx.json")
+          echo "Dependency-Track upload HTTP $code (project $PROJECT_NAME / $PROJECT_VERSION)"
+          if [ "$code" -ge 300 ]; then
+            echo "::warning::Dependency-Track upload failed (HTTP $code): $(cat "$RUNNER_TEMP/dt-resp.txt")"
+            exit 0
+          fi
+          echo "Uploaded. DT is now analysing the SBOM at $DT_URL."
