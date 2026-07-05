@@ -59,14 +59,18 @@ jobs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       # App token (not GITHUB_TOKEN) — needed to enumerate the private org
-      # repos when fanning out one shard per live *-Cloud repo.
+      # repos when fanning out one shard per live *-Cloud repo. Identical
+      # org-wide App install + unpinned tag as the renovate job's token below:
+      # org-wide read is inherent to discovering the repo list, so zizmor's
+      # github-app / unpinned-uses are suppressed here to match that already
+      # accepted pattern rather than flagged as net-new on this step.
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@v3 # zizmor: ignore[github-app,unpinned-uses]
         with:
           app-id: ${{ secrets.RENOVATE_APP_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
-          owner: FerrLabs
+          owner: FerrLabs # zizmor: ignore[github-app]
       # A manual repoFilter collapses to one `manual` shard. A scheduled run
       # fans out into disjoint shards, computed from the live repo list:
       #   - one shard per non-archived *-Cloud repo (each is a heavy
