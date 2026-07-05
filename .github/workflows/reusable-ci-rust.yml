@@ -176,26 +176,26 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
         run: |
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
           components: ${{ inputs.rust-components }}
           targets: ${{ inputs.rust-targets }}
       - if: inputs.cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: ${{ inputs.working-directory }}
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@519a65c07cfdc448026e29aee2578d2212529d2f # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
@@ -235,7 +235,7 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
         env:
@@ -250,13 +250,13 @@ jobs:
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends postgresql-client
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
           components: ${{ inputs.rust-components }}
           targets: ${{ inputs.rust-targets }}
       - if: inputs.cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: ${{ inputs.working-directory }}
           # sccache owns target/ — double-caching it thrashes disk (see the
@@ -265,7 +265,7 @@ jobs:
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@519a65c07cfdc448026e29aee2578d2212529d2f # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
@@ -303,21 +303,21 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
         run: |
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
       - if: inputs.cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: ${{ inputs.working-directory }}
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@4684b8405694ae9dd42c9f39ba901a70ae83f4a3 # v2
         with:
           tool: cargo-audit,cargo-deny,cargo-machete
       - name: cargo audit (RustSec advisories)
@@ -361,8 +361,8 @@ jobs:
     if: inputs.enable-typos
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: crate-ci/typos@master
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: crate-ci/typos@bc212b92c93b7d2c8acb5fcb114250694513595b # master
         with:
           files: ${{ inputs.working-directory }}
 
@@ -381,30 +381,30 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
         run: |
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
           components: llvm-tools-preview
       - if: inputs.cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: ${{ inputs.working-directory }}
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@519a65c07cfdc448026e29aee2578d2212529d2f # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - if: inputs.coverage-tool == 'llvm-cov'
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@4684b8405694ae9dd42c9f39ba901a70ae83f4a3 # v2
         with:
           tool: cargo-llvm-cov
       - name: Generate coverage (llvm-cov)
@@ -427,7 +427,7 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Hand coverage to the SonarQube job
         if: inputs.enable-sonar
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
           path: ${{ inputs.working-directory }}/${{ inputs.coverage-tool == 'llvm-cov' && 'lcov.info' || 'cobertura.xml' }}
@@ -455,7 +455,7 @@ jobs:
           ' lcov.info > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
       - name: Upload rebased lcov
         if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ inputs.coverage-upload-as }}
           path: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov
@@ -469,7 +469,7 @@ jobs:
     # for full reports.
     if: inputs.enable-sonar && !cancelled()
     needs: coverage
-    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@519a65c07cfdc448026e29aee2578d2212529d2f # main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.working-directory }}
