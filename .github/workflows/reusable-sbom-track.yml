@@ -57,7 +57,7 @@ jobs:
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Guard on DTRACK_API_KEY
         id: guard
