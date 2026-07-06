@@ -195,7 +195,7 @@ jobs:
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@519a65c07cfdc448026e29aee2578d2212529d2f # main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@79140de7b61e50a96e040457bb5b97b48a0b2c78 # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
@@ -265,7 +265,7 @@ jobs:
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@519a65c07cfdc448026e29aee2578d2212529d2f # main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@79140de7b61e50a96e040457bb5b97b48a0b2c78 # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
@@ -399,7 +399,7 @@ jobs:
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@519a65c07cfdc448026e29aee2578d2212529d2f # main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@79140de7b61e50a96e040457bb5b97b48a0b2c78 # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
@@ -469,7 +469,7 @@ jobs:
     # for full reports.
     if: inputs.enable-sonar && !cancelled()
     needs: coverage
-    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@519a65c07cfdc448026e29aee2578d2212529d2f # main
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@79140de7b61e50a96e040457bb5b97b48a0b2c78 # main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.working-directory }}
