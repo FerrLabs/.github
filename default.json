@@ -3,7 +3,8 @@
   "extends": [
     "config:recommended",
     "mergeConfidence:all-badges",
-    ":semanticCommits"
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
   ],
   "dependencyDashboard": false,
   "rebaseWhen": "behind-base-branch",
