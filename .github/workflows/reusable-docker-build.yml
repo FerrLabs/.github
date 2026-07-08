@@ -216,6 +216,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        # Authenticate the Trivy DB pull from ghcr.io/aquasecurity/trivy-db.
+        # trivy-action already caches the DB (keyed by date), but on the first
+        # scan of the day two images releasing in parallel (App + Render) both
+        # cache-miss and pull the DB at once; anonymous concurrent GHCR pulls
+        # get rate-limited, one scan exits 1 → the cosign job is skipped and the
+        # image ships to GHCR unsigned. TRIVY_USERNAME/PASSWORD makes the DB
+        # pull authenticated (per-account quota instead of per-IP anonymous),
+        # which clears the contention. Note: GITHUB_TOKEN as an env var does NOT
+        # help here — trivy only uses it for GitHub API calls (VEX repos), not
+        # the OCI registry pull of the DB.
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         with:
           image-ref: ${{ inputs.image-name }}:${{ inputs.tag }}
           format: sarif
