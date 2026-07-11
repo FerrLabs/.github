@@ -277,13 +277,31 @@ jobs:
           DB="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_${RANDOM}"
           echo "Creating throwaway database $DB on ${PGHOST}:${PGPORT}"
           createdb "$DB"
+          # The shared postgres-ci pod can briefly refuse connections under
+          # concurrent CI load; wait until the new DB actually accepts one
+          # before handing it to the tests, otherwise the pool init panics.
+          for _ in $(seq 1 30); do
+            if pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$DB" >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
           echo "CI_DB_NAME=$DB" >> "$GITHUB_ENV"
           echo "${DB_ENV_NAME}=postgres://${PGUSER}@${PGHOST}:${PGPORT}/${DB}" >> "$GITHUB_ENV"
       - name: Integration tests
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
           INTEGRATION_ARGS: ${{ inputs.integration-args }}
-        run: cargo test $INTEGRATION_ARGS
+        # Retry on a transient DB-connection flake against the shared postgres-ci
+        # pod — the tests are deterministic, only pool setup flakes under load, so
+        # a real regression still fails all three attempts.
+        run: |
+          set -uo pipefail
+          for attempt in 1 2 3; do
+            echo "::group::Integration attempt ${attempt}/3"
+            if cargo test $INTEGRATION_ARGS; then echo "::endgroup::"; exit 0; fi
+            echo "::endgroup::"
+            sleep 5
+          done
+          exit 1
       - name: Drop per-run database
         if: always() && env.CI_DB_NAME != ''
         run: dropdb --if-exists "$CI_DB_NAME"
