@@ -37,7 +37,7 @@ on:
         required: false
         default: ''
       smoke-test-cmd:
-        description: 'Shell command to functionally test the built image before it is pushed. When set, the image is built and loaded locally first (single-platform only — set platforms accordingly), this command runs with $SMOKE_IMAGE pointing at the loaded ref, and the registry push happens only if it passes. Empty = skip.'
+        description: 'Shell command to functionally test the built image before it is pushed. When set, the image is built into the local buildah/containers store (single-platform only — set platforms accordingly), this command runs with $SMOKE_IMAGE pointing at that store ref, and the registry push happens only if it passes. Run it with `podman run "$SMOKE_IMAGE"` — NOT `docker run`: the image is not yet pushed and Docker does not share buildah''s store, so docker would try to pull the missing tag and fail with `manifest unknown`. Empty = skip.'
         type: string
         required: false
         default: ''
