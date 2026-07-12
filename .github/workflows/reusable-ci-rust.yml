@@ -269,6 +269,18 @@ jobs:
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
+      # Compile the test binaries BEFORE creating the throwaway DB. Otherwise the
+      # fresh DB sits with zero connections for the whole build (~10-15 min) and
+      # the hourly postgres-ci GC, which reaps idle `ci_*` databases, can drop it
+      # mid-run (a connectionless DB looks orphaned). Pre-building shrinks the
+      # create→first-connection window to seconds. The GC also has an age guard,
+      # but keeping the window tiny is cheap defense-in-depth. Strip the test
+      # harness args (everything after ` -- `) so only cargo-side flags reach
+      # `--no-run`.
+      - name: Pre-compile integration test binaries
+        env:
+          INTEGRATION_ARGS: ${{ inputs.integration-args }}
+        run: cargo test --no-run ${INTEGRATION_ARGS%% -- *}
       - name: Create per-run database
         env:
           DB_ENV_NAME: ${{ inputs.integration-db-env }}
