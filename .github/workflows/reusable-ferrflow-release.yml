@@ -32,6 +32,19 @@ on:
         type: boolean
         required: false
         default: false
+      deferred-publish:
+        description: >-
+          For repos with `deferPublish: true` in ferrflow.json. The release job
+          then only bumps/tags/creates GitHub Releases (no inline publish);
+          set this true to run a separate, independently re-runnable
+          `ferrflow publish` job afterwards. This decouples publish from the
+          tag: `ferrflow publish` is idempotent against the registry, so a
+          flaky publish (e.g. Kellnr index lag on a just-published dependency)
+          is fixed by re-running only the publish job — no "tag already exists,
+          skip" trap. Leave false for repos that publish inline.
+        type: boolean
+        required: false
+        default: false
     secrets:
       RENOVATE_TOKEN:
         required: false
@@ -66,6 +79,36 @@ jobs:
         with:
           dry_run: ${{ inputs.dry-run }}
           force_version: ${{ inputs.force-version }}
+          bot: true
+
+  publish:
+    name: Publish with FerrFlow
+    needs: release
+    # Only for repos that defer publish (deferPublish in ferrflow.json). Separate
+    # job so a flaky registry publish is re-runnable on its own — `ferrflow
+    # publish` is idempotent against the registry, so re-running publishes only
+    # what's tagged-but-missing (recovers the index-lag / partial-publish case).
+    if: ${{ inputs.deferred-publish && github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release):') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          # Latest main so the release job's version-bump commit + tags are
+          # present — `ferrflow publish` publishes the currently-released
+          # versions.
+          ref: ${{ github.ref }}
+          fetch-depth: ${{ inputs.fetch-depth }}
+          persist-credentials: false
+      # cargo publish needs the toolchain (it builds the .crate, and reads the
+      # private Kellnr index for dependency metadata).
+      - if: ${{ hashFiles('**/Cargo.toml') != '' }}
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+      - uses: FerrLabs/FerrFlow@80d4c81ac9d8fa04a8e967c4a80da2922797703e # v5.22.1
+        env:
+          CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
+        with:
+          mode: publish
+          dry_run: ${{ inputs.dry-run }}
           bot: true
 
   trigger-renovate:
