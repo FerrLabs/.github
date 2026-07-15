@@ -246,7 +246,20 @@ jobs:
         continue-on-error: true
       - name: audit
         if: inputs.enable-audit
-        run: ${{ inputs.package-manager }} audit --prod --audit-level=${{ inputs.audit-level }}
+        env:
+          PKG_MANAGER: ${{ inputs.package-manager }}
+          AUDIT_LEVEL: ${{ inputs.audit-level }}
+        run: |
+          set +e
+          OUT=$("$PKG_MANAGER" audit --prod --audit-level="$AUDIT_LEVEL" 2>&1)
+          EXIT=$?
+          set -e
+          printf '%s\n' "$OUT"
+          if [ "$EXIT" -ne 0 ] && printf '%s' "$OUT" | grep -qE 'responded with 410|endpoint is being retired'; then
+            echo "::warning title=Dependency audit skipped::The npm registry retired the legacy audit endpoints on 2026-07-15, and pnpm only queries the replacement bulk advisory endpoint from v11 onwards. This step cannot gate anything until this repo moves to pnpm 11, so it is reporting a warning instead of failing. Dependency CVEs are still surfaced (advisory-only) by osv-scanner in the security-scan workflow. See https://github.com/pnpm/pnpm/issues/11265"
+            exit 0
+          fi
+          exit $EXIT
 
   sonarqube:
     name: SonarQube
