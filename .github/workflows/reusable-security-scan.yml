@@ -69,7 +69,7 @@ jobs:
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
       - name: Install gitleaks
@@ -100,7 +100,7 @@ jobs:
           fi
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: gitleaks.sarif
           category: gitleaks
@@ -111,7 +111,7 @@ jobs:
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - name: Detect Go module
         id: detect
         run: |
@@ -151,7 +151,7 @@ jobs:
           fi
       - name: Upload SARIF
         if: always() && hashFiles('osv-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: osv-results.sarif
           category: osv-scanner
@@ -210,7 +210,7 @@ jobs:
           exit 0
       - name: Upload SARIF
         if: always() && hashFiles('opengrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: opengrep.sarif
           category: opengrep
@@ -221,7 +221,7 @@ jobs:
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - name: Install zizmor
         env:
           PIP_BREAK_SYSTEM_PACKAGES: '1'
@@ -251,7 +251,7 @@ jobs:
           fi
       - name: Upload SARIF
         if: always() && hashFiles('zizmor.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: zizmor.sarif
           category: zizmor
@@ -262,7 +262,7 @@ jobs:
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (!github.event.repository.private || inputs.run-on-private) }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
       - name: Install trufflehog
@@ -288,7 +288,7 @@ jobs:
           fi
       - name: Upload findings
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: trufflehog-findings
           path: trufflehog.json
@@ -344,7 +344,7 @@ jobs:
           exit 0
       - name: Upload SARIF
         if: always() && hashFiles('snyk.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: snyk.sarif
           category: snyk

@@ -99,7 +99,7 @@ jobs:
     outputs:
       has_go: ${{ steps.check.outputs.has_go }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - id: check
         run: |
           if [ -f "${{ inputs.go-version-file }}" ]; then
@@ -122,8 +122,8 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version: ${{ inputs.go-version }}
           go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
@@ -141,7 +141,7 @@ jobs:
         if: inputs.enable-vet
         run: go vet ${{ inputs.test-paths }}
       - if: inputs.enable-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
           version: ${{ inputs.golangci-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -160,8 +160,8 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version: ${{ inputs.go-version }}
           go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
@@ -180,7 +180,7 @@ jobs:
           fail_ci_if_error: false
       - name: Hand coverage to the SonarQube job
         if: inputs.enable-sonar && inputs.enable-coverage
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
           path: ${{ inputs.working-directory }}/coverage.out
@@ -192,7 +192,7 @@ jobs:
       # SF: rebase is needed — Sonar resolves them against projectBaseDir directly.
       - name: Upload coverage for repo-level scan
         if: inputs.coverage-upload-as != '' && inputs.enable-coverage
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ inputs.coverage-upload-as }}
           path: ${{ inputs.working-directory }}/coverage.out
@@ -213,8 +213,8 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version: ${{ inputs.go-version }}
           go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
@@ -249,8 +249,8 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version: ${{ inputs.go-version }}
           go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
@@ -265,7 +265,7 @@ jobs:
     if: inputs.enable-sonar && !cancelled()
     # needs: test so the coverage artifact exists before the scan downloads it.
     needs: test
-    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@e4fa4cc7d67d251f457d76b55187524eeaede89e # main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}

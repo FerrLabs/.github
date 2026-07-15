@@ -139,12 +139,12 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - if: inputs.package-manager == 'pnpm'
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
         with:
           version: ${{ inputs.pnpm-version }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ inputs.node-version }}
           cache: ${{ inputs.cache && inputs.package-manager || '' }}
@@ -173,7 +173,7 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Hand lcov to the SonarQube job
         if: inputs.enable-sonar && inputs.enable-test
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
           path: ${{ inputs.working-directory }}/${{ inputs.sonar-lcov-path }}
@@ -202,7 +202,7 @@ jobs:
           ' "$LCOV" > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
       - name: Upload rebased lcov
         if: inputs.coverage-upload-as != '' && inputs.enable-test
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ inputs.coverage-upload-as }}
           path: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov
@@ -220,12 +220,12 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - if: inputs.package-manager == 'pnpm'
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
         with:
           version: ${{ inputs.pnpm-version }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ inputs.node-version }}
           cache: ${{ inputs.cache && inputs.package-manager || '' }}
@@ -254,7 +254,7 @@ jobs:
     if: inputs.enable-sonar && !cancelled()
     # needs: test so the coverage artifact exists before the scan downloads it.
     needs: test
-    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@main
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@e4fa4cc7d67d251f457d76b55187524eeaede89e # main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}
