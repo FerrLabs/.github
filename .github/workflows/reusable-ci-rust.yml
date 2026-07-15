@@ -195,7 +195,7 @@ jobs:
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@bdaab31e389a50ea7c60a9b8eae1d0420e0638c8 # main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@e4fa4cc7d67d251f457d76b55187524eeaede89e # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
@@ -265,7 +265,7 @@ jobs:
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@bdaab31e389a50ea7c60a9b8eae1d0420e0638c8 # main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@e4fa4cc7d67d251f457d76b55187524eeaede89e # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
@@ -347,7 +347,7 @@ jobs:
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: ${{ inputs.working-directory }}
-      - uses: taiki-e/install-action@4684b8405694ae9dd42c9f39ba901a70ae83f4a3 # v2
+      - uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # v2
         with:
           tool: cargo-audit,cargo-deny,cargo-machete
       - name: cargo audit (RustSec advisories)
@@ -392,7 +392,7 @@ jobs:
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: crate-ci/typos@bc212b92c93b7d2c8acb5fcb114250694513595b # master
+      - uses: crate-ci/typos@3bc303c295c081add5df4a4d52a1e117f2fb2dce # master
         with:
           files: ${{ inputs.working-directory }}
 
@@ -429,12 +429,12 @@ jobs:
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
-        uses: FerrLabs/.github/.github/actions/setup-sccache@bdaab31e389a50ea7c60a9b8eae1d0420e0638c8 # main
+        uses: FerrLabs/.github/.github/actions/setup-sccache@e4fa4cc7d67d251f457d76b55187524eeaede89e # main
         with:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - if: inputs.coverage-tool == 'llvm-cov'
-        uses: taiki-e/install-action@4684b8405694ae9dd42c9f39ba901a70ae83f4a3 # v2
+        uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # v2
         with:
           tool: cargo-llvm-cov
       - name: Generate coverage (llvm-cov)
@@ -499,7 +499,7 @@ jobs:
     # for full reports.
     if: inputs.enable-sonar && !cancelled()
     needs: coverage
-    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@bdaab31e389a50ea7c60a9b8eae1d0420e0638c8 # main
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@e4fa4cc7d67d251f457d76b55187524eeaede89e # main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.working-directory }}

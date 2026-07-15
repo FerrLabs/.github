@@ -66,7 +66,7 @@ jobs:
       # accepted pattern rather than flagged as net-new on this step.
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v3 # zizmor: ignore[github-app,unpinned-uses]
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3 # zizmor: ignore[github-app,unpinned-uses]
         with:
           client-id: ${{ secrets.RENOVATE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
@@ -145,14 +145,14 @@ jobs:
       # are now attributed to `ferrlabs-renovate[bot]` instead of a human.
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
         with:
           client-id: ${{ secrets.RENOVATE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
           owner: FerrLabs
 
       - name: Checkout config
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Probe GHCR npm read access (informational)
         env:
@@ -179,7 +179,7 @@ jobs:
           fi
 
       - name: Run Renovate
-        uses: renovatebot/github-action@v46.1.17
+        uses: renovatebot/github-action@b50d2ba2bd928235abdcc14d06dfafc217f1c565 # v46.1.18
         with:
           token: ${{ steps.app-token.outputs.token }}
           configurationFile: default.json
