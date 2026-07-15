@@ -17,6 +17,11 @@ name: Reusable — Renovate rebase dispatch
 
 on:
   workflow_call:
+    inputs:
+      runner:
+        description: 'Runner label. Public repos must pass a GitHub-hosted runner — the ferrlabs-k8s group sets allows_public_repositories=false.'
+        type: string
+        default: 'ferrlabs-k8s'
 
 permissions: {}
 
@@ -26,7 +31,7 @@ jobs:
     if: >-
       startsWith(github.head_ref, 'renovate/') &&
       contains(github.event.pull_request.body, '- [x] <!-- rebase-check -->')
-    runs-on: ferrlabs-k8s
+    runs-on: ${{ inputs.runner }}
     steps:
       - name: Trigger a repo-scoped Renovate run
         env:
