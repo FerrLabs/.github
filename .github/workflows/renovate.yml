@@ -183,6 +183,12 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           configurationFile: default.json
+          # The action filters `process.env` through this regex before handing it
+          # to the Renovate container, so anything not matching never reaches
+          # cargo. This is the action's own default with CARGO_REGISTRIES_KELLNR_*
+          # appended — keep the leading alternatives in sync when bumping the
+          # action, or Renovate silently loses LOG_LEVEL / proxy config.
+          env-regex: '^(?:RENOVATE_\w+|LOG_LEVEL|GITHUB_COM_TOKEN|NODE_OPTIONS|NO_COLOR|(?:HTTPS?|NO)_PROXY|(?:https?|no)_proxy|CARGO_REGISTRIES_KELLNR_(?:INDEX|TOKEN))$'
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_AUTODISCOVER: "true"
@@ -194,6 +200,8 @@ jobs:
           # repo's api/.cargo/config.toml, but Renovate invokes cargo from the
           # repo root where that subdir config isn't discovered ("registry index
           # was not found: kellnr") — env vars are honoured regardless of cwd.
+          # Declaring them here is necessary but not sufficient: they only reach
+          # the container because `env-regex` above allows them through.
           CARGO_REGISTRIES_KELLNR_INDEX: "sparse+https://crates.ferrlabs.com/api/v1/crates/"
           CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
           # Identity Renovate must recognise as its own so it keeps
