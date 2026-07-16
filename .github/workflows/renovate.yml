@@ -183,27 +183,30 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           configurationFile: default.json
-          # The action filters `process.env` through this regex before handing it
-          # to the Renovate container, so anything not matching never reaches
-          # cargo. This is the action's own default with CARGO_REGISTRIES_KELLNR_*
-          # appended — keep the leading alternatives in sync when bumping the
-          # action, or Renovate silently loses LOG_LEVEL / proxy config.
-          env-regex: '^(?:RENOVATE_\w+|LOG_LEVEL|GITHUB_COM_TOKEN|NODE_OPTIONS|NO_COLOR|(?:HTTPS?|NO)_PROXY|(?:https?|no)_proxy|CARGO_REGISTRIES_KELLNR_(?:INDEX|TOKEN))$'
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_AUTODISCOVER: "true"
           RENOVATE_AUTODISCOVER_FILTER: ${{ matrix.filter }}
           RENOVATE_PLATFORM: "github"
           RENOVATE_REPOSITORY_CACHE: "enabled"
-          # Private Kellnr cargo registry, declared via env so Renovate's
-          # `cargo update` lockfile runs resolve it. The registry lives in each
-          # repo's api/.cargo/config.toml, but Renovate invokes cargo from the
-          # repo root where that subdir config isn't discovered ("registry index
-          # was not found: kellnr") — env vars are honoured regardless of cwd.
-          # Declaring them here is necessary but not sufficient: they only reach
-          # the container because `env-regex` above allows them through.
-          CARGO_REGISTRIES_KELLNR_INDEX: "sparse+https://crates.ferrlabs.com/api/v1/crates/"
-          CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
+          # Private Kellnr cargo registry, needed so Renovate's `cargo update`
+          # lockfile runs resolve it. The registry lives in each repo's
+          # api/.cargo/config.toml, but Renovate invokes cargo from the repo root
+          # where that subdir config isn't discovered ("registry index was not
+          # found: kellnr"), so it has to come from the environment.
+          #
+          # It must go through customEnvVariables rather than a plain `env:`
+          # entry: Renovate builds the environment of the commands it spawns from
+          # an allowlist (`basicEnvVars` in lib/util/exec/env.ts — CI, PATH,
+          # HOME, proxies, ...) plus customEnvVariables. A CARGO_* var declared
+          # as a step `env:` reaches the Renovate process but is stripped before
+          # cargo ever sees it. Nothing logs that it was dropped; the only symptom
+          # is cargo failing to parse the manifest.
+          RENOVATE_CUSTOM_ENV_VARIABLES: |
+            {
+              "CARGO_REGISTRIES_KELLNR_INDEX": "sparse+https://crates.ferrlabs.com/api/v1/crates/",
+              "CARGO_REGISTRIES_KELLNR_TOKEN": "${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}"
+            }
           # Identity Renovate must recognise as its own so it keeps
           # auto-rebasing its PRs instead of assuming a human edited them.
           # Must byte-match the author GitHub attributes to the App bot when
