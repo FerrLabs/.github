@@ -72,7 +72,10 @@ on:
         value: ${{ jobs.build.outputs.digest }}
     secrets:
       packages-read:
-        description: 'GHCR token with read:packages, for installing private @ferrlabs/* npm or other authenticated fetches during the build. Exposed to BuildKit as a secret (id=packages-read) via --mount=type=secret, never as a build-arg, so it never lands in an image layer or the build log. In the Dockerfile: RUN --mount=type=secret,id=packages-read,env=NODE_AUTH_TOKEN pnpm install.'
+        description: 'GHCR token with read:packages, for installing private @ferrlabs/* npm or other authenticated fetches during the build. Exposed to BuildKit as a secret (id=packages-read) via --mount=type=secret, never as a build-arg, so it never lands in an image layer or the build log. In the Dockerfile: RUN --mount=type=secret,id=packages-read sh -c ''TOKEN="$(cat /run/secrets/packages-read)" ...'' (buildah does not support the env= key on secret mounts).'
+        required: false
+      cargo-registry-token:
+        description: 'Token for the private cargo registry (Kellnr), for builds that fetch registry-based Kit crates in addition to git-based ones. Exposed to BuildKit as a secret (id=cargo-registry-token), same handling as packages-read. In the Dockerfile: RUN --mount=type=secret,id=cargo-registry-token sh -c ''CARGO_REGISTRIES_KELLNR_TOKEN="$(cat /run/secrets/cargo-registry-token)" cargo build ...''.'
         required: false
 
 permissions:
@@ -132,13 +135,18 @@ jobs:
           PUSH_RETRIES: ${{ inputs.push-retries }}
           SMOKE_CMD: ${{ inputs.smoke-test-cmd }}
           PACKAGES_READ: ${{ secrets.packages-read }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.cargo-registry-token }}
         run: |
           set -euo pipefail
 
           secret_args=()
           if [ -n "${PACKAGES_READ:-}" ]; then
             printf '%s' "$PACKAGES_READ" > "$RUNNER_TEMP/packages-read"
-            secret_args=(--secret "id=packages-read,src=$RUNNER_TEMP/packages-read")
+            secret_args+=(--secret "id=packages-read,src=$RUNNER_TEMP/packages-read")
+          fi
+          if [ -n "${CARGO_REGISTRY_TOKEN:-}" ]; then
+            printf '%s' "$CARGO_REGISTRY_TOKEN" > "$RUNNER_TEMP/cargo-registry-token"
+            secret_args+=(--secret "id=cargo-registry-token,src=$RUNNER_TEMP/cargo-registry-token")
           fi
 
           build_arg_args=()
@@ -153,7 +161,7 @@ jobs:
             --manifest "$IMAGE:$TAG" \
             -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
 
-          rm -f "$RUNNER_TEMP/packages-read"
+          rm -f "$RUNNER_TEMP/packages-read" "$RUNNER_TEMP/cargo-registry-token"
 
           if [ -n "${SMOKE_CMD:-}" ]; then
             echo "::group::smoke test"
