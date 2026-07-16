@@ -202,10 +202,23 @@ jobs:
           # as a step `env:` reaches the Renovate process but is stripped before
           # cargo ever sees it. Nothing logs that it was dropped; the only symptom
           # is cargo failing to parse the manifest.
+          # These mirror api/.cargo/config.toml, which cargo does not read here:
+          # it looks for .cargo/config.toml upwards from the cwd, not from
+          # --manifest-path. Both of that file's halves must be replicated —
+          # the registry index *and* the credential provider.
+          #
+          # global-credential-providers only restates cargo's own default, but
+          # relying on the default is not equivalent to declaring it: cargo
+          # refuses any auth-required registry unless the provider is set
+          # explicitly (`!global_provider_defined` in util/auth/mod.rs), and
+          # fails with "authenticated registries require a credential-provider"
+          # even when the token is valid. Keep this in sync with
+          # api/.cargo/config.toml in the consuming repos.
           RENOVATE_CUSTOM_ENV_VARIABLES: |
             {
               "CARGO_REGISTRIES_KELLNR_INDEX": "sparse+https://crates.ferrlabs.com/api/v1/crates/",
-              "CARGO_REGISTRIES_KELLNR_TOKEN": "${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}"
+              "CARGO_REGISTRIES_KELLNR_TOKEN": "${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}",
+              "CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS": "cargo:token"
             }
           # Identity Renovate must recognise as its own so it keeps
           # auto-rebasing its PRs instead of assuming a human edited them.
