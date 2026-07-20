@@ -70,8 +70,8 @@ jobs:
       # bump. The release runner has no Rust by default, so install it when the
       # repo has a Cargo.toml.
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
-        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
-      - uses: FerrLabs/FerrFlow@67982d010cde4e8c17849340b5c37da8ccb687d9 # v5.23.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+      - uses: FerrLabs/FerrFlow@b58892fa32933fa5b9d4a55c25825e03a4416b98 # v5.31.4
         env:
           # Lets cargo-based postBump hooks read the private Kellnr index.
           # Empty (and unused) for repos that don't consume Kellnr.
@@ -102,8 +102,8 @@ jobs:
       # cargo publish needs the toolchain (it builds the .crate, and reads the
       # private Kellnr index for dependency metadata).
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
-        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
-      - uses: FerrLabs/FerrFlow@67982d010cde4e8c17849340b5c37da8ccb687d9 # v5.23.0
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+      - uses: FerrLabs/FerrFlow@b58892fa32933fa5b9d4a55c25825e03a4416b98 # v5.31.4
         env:
           CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
         with:
