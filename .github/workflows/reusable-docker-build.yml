@@ -88,20 +88,23 @@ permissions:
 jobs:
   hadolint:
     name: hadolint
-    # Docker container action — needs a Docker daemon, which the self-hosted ARC
-    # runners don't provide. Pin to GitHub-hosted ubuntu-latest; the heavy build
-    # job below stays on the configured (self-hosted) runner.
-    runs-on: ubuntu-latest
+    # hadolint via its static binary (not the hadolint-action Docker container)
+    # so it runs on the self-hosted pool for private repos — the ARC runners
+    # have buildah but no Docker daemon. Public repos fall back to ubuntu-latest.
+    runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
-        with:
-          dockerfile: ${{ inputs.context }}/${{ inputs.dockerfile }}
-          failure-threshold: warning
+      - name: Lint Dockerfile (hadolint)
+        run: |
+          curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 \
+            -o "${RUNNER_TEMP}/hadolint"
+          chmod +x "${RUNNER_TEMP}/hadolint"
           # DL3008 (apt) / DL3018 (apk): pinning OS package versions is
           # impractical — Debian/Alpine point releases supersede them and exact
           # pins break the build. Every other warning still fails the gate.
-          ignore: DL3008,DL3018
+          "${RUNNER_TEMP}/hadolint" --failure-threshold warning \
+            --ignore DL3008 --ignore DL3018 \
+            "${{ inputs.context }}/${{ inputs.dockerfile }}"
 
   build:
     name: Build & push
@@ -263,13 +266,19 @@ jobs:
     name: cosign (sign + attest)
     needs: [build, trivy]
     if: inputs.push
-    # cosign-installer needs `envsubst` (gettext), which the minimal self-hosted
-    # ARC runners don't ship — it fails with "envsubst: command not found".
-    # Signing only touches the remote GHCR digest, so pin to a GitHub-hosted
-    # runner (same rationale as the hadolint job above).
-    runs-on: ubuntu-latest
+    # cosign from its static binary (not cosign-installer, which needs
+    # envsubst/gettext absent from the minimal ARC image) so signing runs on the
+    # self-hosted pool for private repos. Public repos fall back to ubuntu-latest.
+    # Keyless signing uses the Actions OIDC token, which is available on
+    # self-hosted runners too (needs id-token: write, already granted).
+    runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Install cosign
+        run: |
+          curl -fsSL https://github.com/sigstore/cosign/releases/download/v2.4.1/cosign-linux-amd64 \
+            -o "${RUNNER_TEMP}/cosign"
+          chmod +x "${RUNNER_TEMP}/cosign"
+          echo "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
       - name: Login to GHCR
         if: startsWith(inputs.image-name, 'ghcr.io/')
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
