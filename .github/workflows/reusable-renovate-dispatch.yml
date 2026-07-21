@@ -44,6 +44,7 @@ jobs:
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
           owner: FerrLabs
           repositories: .github
+          permission-actions: write
       - name: Trigger a repo-scoped Renovate run
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
