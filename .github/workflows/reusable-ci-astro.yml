@@ -8,7 +8,7 @@ on:
         type: string
         default: '.'
       runner:
-        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s pool (ferrlabs-k8s-large for build/test jobs), public repos use ubuntu-latest.'
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s (medium) pool, public repos use ubuntu-latest.'
         type: string
         default: ''
       node-version:
@@ -102,7 +102,9 @@ permissions:
 jobs:
   build:
     name: Build & Check
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
+    # medium (was -large): astro/vite build fits on 1 CPU / 3Gi and this frees
+    # the scarce 2-slot -large tier for the heavy Rust build/test/coverage jobs.
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
