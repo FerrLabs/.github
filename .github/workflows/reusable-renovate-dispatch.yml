@@ -8,9 +8,12 @@ name: Reusable — Renovate rebase dispatch
 #
 # Callers trigger on `pull_request: types: [edited]` and pass `secrets: inherit`.
 #
-# Requires the org secret RENOVATE_TOKEN: dispatching renovate.yml lives in
-# FerrLabs/.github, and a repo's own GITHUB_TOKEN cannot reach another repo.
-# Soft-passes when unset — the next scheduled run still picks the box up.
+# Dispatching renovate.yml lives in FerrLabs/.github, and a repo's own
+# GITHUB_TOKEN cannot reach another repo — so this mints a short-lived token
+# from the Renovate GitHub App (RENOVATE_APP_CLIENT_ID / RENOVATE_APP_PRIVATE_KEY,
+# the same app renovate.yml uses), scoped to the .github repo, and uses it to
+# trigger renovate.yml. The app must have `actions: write` on FerrLabs/.github
+# for the workflow_dispatch to succeed.
 #
 # This cannot loop: Renovate unticks the box once it has rebased, and that
 # second `edited` event no longer matches the guard below.
@@ -33,16 +36,20 @@ jobs:
       contains(github.event.pull_request.body, '- [x] <!-- rebase-check -->')
     runs-on: ${{ inputs.runner }}
     steps:
+      - name: Mint a token from the Renovate GitHub App
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ secrets.RENOVATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: FerrLabs
+          repositories: .github
       - name: Trigger a repo-scoped Renovate run
         env:
-          GH_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "RENOVATE_TOKEN not set — skipping. The next scheduled Renovate run will pick up the checkbox."
-            exit 0
-          fi
           gh workflow run renovate.yml -R FerrLabs/.github -f repoFilter="$REPO"
           echo "Dispatched a Renovate run scoped to $REPO (requested from PR #$PR)."
