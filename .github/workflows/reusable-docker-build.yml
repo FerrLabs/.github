@@ -212,7 +212,10 @@ jobs:
     name: Trivy (CVE scan)
     needs: build
     if: inputs.push
-    runs-on: ${{ inputs.runner }}
+    # medium, not inputs.runner (-large): Trivy just pulls the pushed image
+    # from the registry and scans it — no buildah/compile, so it doesn't need
+    # the scarce 2-slot large tier. Frees a large slot per docker-build run.
+    runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
       # Trivy reads ~/.docker/config.json to pull the image; without this a
       # private GHCR image fails with a 401/manifest-unknown.
@@ -296,7 +299,9 @@ jobs:
     name: SBOM (Syft → CycloneDX)
     needs: build
     if: inputs.push
-    runs-on: ${{ inputs.runner }}
+    # medium, not inputs.runner (-large): Syft pulls the pushed image and
+    # generates the SBOM — no buildah/compile, so no need for the large tier.
+    runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
       # Syft pulls the image via the Docker keychain (~/.docker/config.json);
       # a private GHCR image needs this login or the scan fails to fetch it.
