@@ -56,6 +56,16 @@ on:
         type: boolean
         required: false
         default: true
+      cache:
+        description: 'Reuse a registry-side layer cache at `<image-name>-buildcache`. The ARC runners mount their container store on an emptyDir, so the local `--layers` cache dies with the pod and every build recompiles from scratch; keeping the cache in the registry is what makes it survive. A missing cache repo is a silent miss, so the first build just populates it. Set false for images whose layers are not worth caching.'
+        type: boolean
+        required: false
+        default: true
+      cache-ttl:
+        description: 'Ignore cached layers older than this (buildah --cache-ttl, e.g. 168h). Bounds how long a stale base image can be reused before a rebuild picks up upstream security updates.'
+        type: string
+        required: false
+        default: '168h'
       push-retries:
         description: 'How many times to retry each manifest push if the registry returns a transient error (5xx, network reset). Backoff is 10s, 30s, 90s, … capped at 5 min. Set to 1 to disable retries.'
         type: number
@@ -139,6 +149,8 @@ jobs:
           SMOKE_CMD: ${{ inputs.smoke-test-cmd }}
           PACKAGES_READ: ${{ secrets.packages-read }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.cargo-registry-token }}
+          CACHE: ${{ inputs.cache }}
+          CACHE_TTL: ${{ inputs.cache-ttl }}
         run: |
           set -euo pipefail
 
@@ -157,9 +169,31 @@ jobs:
             [ -n "$line" ] && build_arg_args+=(--build-arg "$line")
           done <<< "${BUILD_ARGS:-}"
 
+          # Registry-side layer cache. The runner's container store is an
+          # emptyDir on an ephemeral ARC pod, so `--layers` alone caches
+          # nothing across runs — a Rust image recompiles every dependency on
+          # every build. Pushing the layers to `<image>-buildcache` is what
+          # makes them outlive the pod.
+          #
+          # Only when the image lives on GHCR: that is the one registry the
+          # step above authenticated against, and --cache-to needs push rights.
+          # A missing cache repo is a silent miss (verified with buildah
+          # 1.33.7), so the first build simply populates it.
+          cache_args=()
+          if [ "$CACHE" = "true" ] && [ "${IMAGE#ghcr.io/}" != "$IMAGE" ]; then
+            CACHE_REPO="${IMAGE}-buildcache"
+            cache_args+=(--cache-from "$CACHE_REPO" --cache-ttl "$CACHE_TTL")
+            # Only publish the cache when we are publishing the image itself:
+            # a build that is not pushed (smoke-test-only) must not overwrite
+            # the cache other builds depend on.
+            [ "$PUSH" = "true" ] && cache_args+=(--cache-to "$CACHE_REPO")
+            echo "Layer cache: $CACHE_REPO (ttl $CACHE_TTL, publish=$PUSH)"
+          fi
+
           buildah build \
             --isolation=chroot --layers \
             --platform "$PLATFORMS" \
+            "${cache_args[@]}" \
             "${secret_args[@]}" "${build_arg_args[@]}" \
             --manifest "$IMAGE:$TAG" \
             -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
