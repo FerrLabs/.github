@@ -87,6 +87,12 @@ on:
       cargo-registry-token:
         description: 'Token for the private cargo registry (Kellnr), for builds that fetch registry-based Kit crates in addition to git-based ones. Exposed to BuildKit as a secret (id=cargo-registry-token), same handling as packages-read. In the Dockerfile: RUN --mount=type=secret,id=cargo-registry-token sh -c ''CARGO_REGISTRIES_KELLNR_TOKEN="$(cat /run/secrets/cargo-registry-token)" cargo build ...''.'
         required: false
+      sccache-s3-key:
+        description: 'garage S3 access key (SCCACHE_S3_KEY) for a compiled-artifact cache INSIDE the image build. The registry layer cache only helps while the layer inputs are unchanged, and a release bumps the version line in Cargo.toml — which is an input of the layer that caches the dependency compile, so every release recompiles every dependency from scratch. sccache caches each crate individually and survives that. Exposed as a build secret (id=sccache-s3-key); the Dockerfile must degrade gracefully when it is absent.'
+        required: false
+      sccache-s3-secret:
+        description: 'garage S3 secret key (SCCACHE_S3_SECRET). Pair of sccache-s3-key; both must be set for the cache to be wired in.'
+        required: false
 
 permissions:
   contents: read
@@ -149,6 +155,8 @@ jobs:
           SMOKE_CMD: ${{ inputs.smoke-test-cmd }}
           PACKAGES_READ: ${{ secrets.packages-read }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.cargo-registry-token }}
+          SCCACHE_S3_KEY: ${{ secrets.sccache-s3-key }}
+          SCCACHE_S3_SECRET: ${{ secrets.sccache-s3-secret }}
           CACHE: ${{ inputs.cache }}
           CACHE_TTL: ${{ inputs.cache-ttl }}
         run: |
@@ -162,6 +170,17 @@ jobs:
           if [ -n "${CARGO_REGISTRY_TOKEN:-}" ]; then
             printf '%s' "$CARGO_REGISTRY_TOKEN" > "$RUNNER_TEMP/cargo-registry-token"
             secret_args+=(--secret "id=cargo-registry-token,src=$RUNNER_TEMP/cargo-registry-token")
+          fi
+          # Compiled-artifact cache for Rust image builds. Both halves or
+          # neither: a key without its secret would have the Dockerfile wire up
+          # sccache against credentials that cannot authenticate, turning a
+          # cache miss into a build failure.
+          if [ -n "${SCCACHE_S3_KEY:-}" ] && [ -n "${SCCACHE_S3_SECRET:-}" ]; then
+            printf '%s' "$SCCACHE_S3_KEY" > "$RUNNER_TEMP/sccache-s3-key"
+            printf '%s' "$SCCACHE_S3_SECRET" > "$RUNNER_TEMP/sccache-s3-secret"
+            secret_args+=(--secret "id=sccache-s3-key,src=$RUNNER_TEMP/sccache-s3-key")
+            secret_args+=(--secret "id=sccache-s3-secret,src=$RUNNER_TEMP/sccache-s3-secret")
+            echo "sccache credentials passed to the build"
           fi
 
           build_arg_args=()
