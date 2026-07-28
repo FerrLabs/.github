@@ -103,7 +103,7 @@ jobs:
     # have buildah but no Docker daemon. Public repos fall back to ubuntu-latest.
     runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Lint Dockerfile (hadolint)
         run: |
           curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 \
@@ -123,7 +123,7 @@ jobs:
     outputs:
       digest: ${{ steps.push.outputs.digest }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The self-hosted ARC runners have buildah, not a Docker daemon — so we
       # build/push with buildah (not docker/buildx). The cosign / Trivy / SBOM
       # jobs below pull the pushed image from the registry, so they need no
@@ -258,7 +258,7 @@ jobs:
       # private GHCR image fails with a 401/manifest-unknown.
       - name: Login to GHCR
         if: startsWith(inputs.image-name, 'ghcr.io/')
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -291,7 +291,7 @@ jobs:
         # because the Security-tab integration is unavailable.
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
         with:
           sarif_file: trivy-results.sarif
           category: trivy
@@ -315,7 +315,7 @@ jobs:
           echo "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
       - name: Login to GHCR
         if: startsWith(inputs.image-name, 'ghcr.io/')
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -350,7 +350,7 @@ jobs:
       # a private GHCR image needs this login or the scan fails to fetch it.
       - name: Login to GHCR
         if: startsWith(inputs.image-name, 'ghcr.io/')
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

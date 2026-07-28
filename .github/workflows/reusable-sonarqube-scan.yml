@@ -55,7 +55,7 @@ jobs:
     name: SonarQube analysis
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # Full history so SonarQube can attribute new-code and blame.
           fetch-depth: 0
@@ -87,7 +87,7 @@ jobs:
       - name: SAST → SonarQube external issues
         id: sast
         if: inputs.sast
-        uses: FerrLabs/.github/.github/actions/sast-external-issues@2294da4af236f9adc02beaa3829afb499be0857a # main
+        uses: FerrLabs/.github/.github/actions/sast-external-issues@5d33e5b2108483ee8769a57b1105a612fd8a9e67 # main
         with:
           working-directory: ${{ inputs.working-directory }}
           sast-config: ${{ inputs.sast-config }}

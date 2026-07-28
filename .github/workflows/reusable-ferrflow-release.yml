@@ -61,7 +61,7 @@ jobs:
     if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: ${{ inputs.fetch-depth }}
           persist-credentials: false
@@ -71,7 +71,7 @@ jobs:
       # repo has a Cargo.toml.
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
-      - uses: FerrLabs/FerrFlow@b58892fa32933fa5b9d4a55c25825e03a4416b98 # v5.31.4
+      - uses: FerrLabs/FerrFlow@6bd3dd27acfbabe048881bd2612d16858104dfae # v5.47.1
         env:
           # Lets cargo-based postBump hooks read the private Kellnr index.
           # Empty (and unused) for repos that don't consume Kellnr.
@@ -91,7 +91,7 @@ jobs:
     if: ${{ inputs.deferred-publish && github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release):') }}
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # Latest main so the release job's version-bump commit + tags are
           # present — `ferrflow publish` publishes the currently-released
@@ -103,7 +103,7 @@ jobs:
       # private Kellnr index for dependency metadata).
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
-      - uses: FerrLabs/FerrFlow@b58892fa32933fa5b9d4a55c25825e03a4416b98 # v5.31.4
+      - uses: FerrLabs/FerrFlow@6bd3dd27acfbabe048881bd2612d16858104dfae # v5.47.1
         env:
           CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
         with:
