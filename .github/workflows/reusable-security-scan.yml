@@ -13,6 +13,16 @@ on:
         type: string
         required: false
         default: ''
+      ferrlabs-rules:
+        description: 'Also scan with the FerrLabs ruleset (sast/ferrlabs.yml in FerrLabs/.github), on top of whatever sast-config resolves to. Rules encode recurring defects found in our own code, so this is on by default.'
+        type: boolean
+        required: false
+        default: true
+      ferrlabs-rules-ref:
+        description: 'Git ref of FerrLabs/.github to pull the ruleset from. Pin to a SHA to freeze the rules for a repo.'
+        type: string
+        required: false
+        default: 'main'
       osv-scan-args:
         description: 'Extra args for osv-scanner'
         type: string
@@ -185,13 +195,39 @@ jobs:
             git clone --depth 1 https://github.com/opengrep/opengrep-rules.git "$RUNNER_TEMP/opengrep-rules"
             echo "path=$RUNNER_TEMP/opengrep-rules" >> "$GITHUB_OUTPUT"
           fi
+      - name: Fetch the FerrLabs ruleset
+        id: ferrlabs-rules
+        if: ${{ inputs.ferrlabs-rules }}
+        env:
+          REF: ${{ inputs.ferrlabs-rules-ref }}
+        run: |
+          set -euo pipefail
+          # Downloaded into RUNNER_TEMP, not the workspace, so the rules file
+          # is not itself part of the tree being scanned.
+          DEST="$RUNNER_TEMP/ferrlabs-sast.yml"
+          URL="https://raw.githubusercontent.com/FerrLabs/.github/${REF}/sast/ferrlabs.yml"
+          if curl -fsSL "$URL" -o "$DEST"; then
+            echo "path=$DEST" >> "$GITHUB_OUTPUT"
+            echo "Loaded FerrLabs ruleset from $REF"
+          else
+            # Never fail the security scan because our own rules are
+            # unreachable — the community set still runs.
+            echo "::warning::Could not fetch the FerrLabs ruleset from $URL — scanning without it."
+          fi
       - name: Run OpenGrep
+        env:
+          FERRLABS_RULES: ${{ steps.ferrlabs-rules.outputs.path }}
         run: |
           set +e
+          EXTRA=()
+          if [ -n "$FERRLABS_RULES" ]; then
+            EXTRA+=(-f "$FERRLABS_RULES")
+          fi
           opengrep scan \
             --sarif-output=opengrep.sarif \
             --error \
             -f "${{ steps.rules.outputs.path }}" \
+            "${EXTRA[@]}" \
             .
           EXIT=$?
           set -e
