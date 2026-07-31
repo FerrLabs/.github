@@ -136,7 +136,7 @@ jobs:
     name: Test & Build
     # medium (was -large): the node/vite build fits on 1 CPU / 3Gi and this
     # frees the scarce 2-slot -large tier for the heavy Rust jobs.
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -217,7 +217,7 @@ jobs:
   quality:
     name: Quality (knip, madge, audit)
     if: inputs.enable-knip || inputs.enable-madge || inputs.enable-audit
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}

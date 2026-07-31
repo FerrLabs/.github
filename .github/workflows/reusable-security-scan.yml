@@ -76,7 +76,7 @@ permissions:
 jobs:
   gitleaks:
     name: gitleaks (secrets)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -118,7 +118,7 @@ jobs:
 
   osv-scanner:
     name: osv-scanner (CVE)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -169,7 +169,7 @@ jobs:
 
   opengrep:
     name: opengrep (SAST)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -254,7 +254,7 @@ jobs:
 
   zizmor:
     name: zizmor (GitHub Actions security)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -295,7 +295,7 @@ jobs:
 
   trufflehog:
     name: trufflehog (secrets, deep history)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (!github.event.repository.private || inputs.run-on-private) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -333,7 +333,7 @@ jobs:
 
   snyk:
     name: snyk (deps)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
