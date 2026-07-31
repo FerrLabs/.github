@@ -53,7 +53,7 @@ permissions:
 jobs:
   sonarqube:
     name: SonarQube analysis
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

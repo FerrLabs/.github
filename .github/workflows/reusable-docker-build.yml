@@ -107,7 +107,7 @@ jobs:
     # hadolint via its static binary (not the hadolint-action Docker container)
     # so it runs on the self-hosted pool for private repos — the ARC runners
     # have buildah but no Docker daemon. Public repos fall back to ubuntu-latest.
-    runs-on: ${{ github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest' }}
+    runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Lint Dockerfile (hadolint)
@@ -271,7 +271,7 @@ jobs:
     # medium, not inputs.runner (-large): Trivy just pulls the pushed image
     # from the registry and scans it — no buildah/compile, so it doesn't need
     # the scarce 2-slot large tier. Frees a large slot per docker-build run.
-    runs-on: ${{ github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest' }}
+    runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
       # Trivy reads ~/.docker/config.json to pull the image; without this a
       # private GHCR image fails with a 401/manifest-unknown.
@@ -324,7 +324,7 @@ jobs:
     # self-hosted pool for private repos. Public repos fall back to ubuntu-latest.
     # Keyless signing uses the Actions OIDC token, which is available on
     # self-hosted runners too (needs id-token: write, already granted).
-    runs-on: ${{ github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest' }}
+    runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
       - name: Install cosign
         run: |
@@ -363,7 +363,7 @@ jobs:
     if: inputs.push
     # medium, not inputs.runner (-large): Syft pulls the pushed image and
     # generates the SBOM — no buildah/compile, so no need for the large tier.
-    runs-on: ${{ github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest' }}
+    runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
       # Syft pulls the image via the Docker keychain (~/.docker/config.json);
       # a private GHCR image needs this login or the scan fails to fetch it.

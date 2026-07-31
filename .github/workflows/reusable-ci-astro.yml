@@ -104,7 +104,7 @@ jobs:
     name: Build & Check
     # medium (was -large): astro/vite build fits on 1 CPU / 3Gi and this frees
     # the scarce 2-slot -large tier for the heavy Rust build/test/coverage jobs.
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -144,7 +144,7 @@ jobs:
   i18n:
     name: i18n parity
     if: inputs.enable-i18n
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -172,7 +172,7 @@ jobs:
     name: Lighthouse CI
     needs: build
     if: inputs.enable-lighthouse && (github.event_name == 'pull_request' || !inputs.lighthouse-only-pr)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
