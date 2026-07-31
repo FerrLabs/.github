@@ -1,7 +1,0 @@
-{
-  "name": "FerrLabs — CodeQL",
-  "description": "GitHub CodeQL static analysis with security-and-quality queries. Edit the matrix to add languages (javascript-typescript, python, go, ...). Note: Rust is not yet supported by CodeQL.",
-  "iconName": "ferrlabs",
-  "categories": ["Security", "Code scanning"],
-  "filePatterns": [".*"]
-}
