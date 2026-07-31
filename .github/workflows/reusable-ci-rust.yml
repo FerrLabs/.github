@@ -230,6 +230,13 @@ jobs:
       PGHOST: ${{ inputs.integration-db-host }}
       PGPORT: ${{ inputs.integration-db-port }}
       PGUSER: ${{ inputs.integration-db-user }}
+    # NE JAMAIS basculer ce job sur `group=ferrlabs-k8s`. Il parle a
+    # postgres-ci.github-runner.svc.cluster.local, un service INTERNE au cluster
+    # de production. Le runner group contient aussi le site Homelab, d'ou ce
+    # service est injoignable : le job y echouerait sur une resolution DNS, sans
+    # rapport apparent avec la base. Cibler le scale set par son NOM reste
+    # possible meme s'il appartient a un group -- c'est exactement ce qu'on fait
+    # ici, et il faut le conserver.
     runs-on: ${{ inputs.integration-runner != '' && inputs.integration-runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
