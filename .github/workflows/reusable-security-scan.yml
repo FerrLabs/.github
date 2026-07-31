@@ -215,9 +215,10 @@ jobs:
             echo "::warning::Could not fetch the FerrLabs ruleset from $URL — scanning without it."
           fi
       - name: Run OpenGrep
+        env:
+          FERRLABS_RULES: ${{ steps.ferrlabs-rules.outputs.path }}
         run: |
           set +e
-          FERRLABS_RULES="${{ steps.ferrlabs-rules.outputs.path }}"
           EXTRA=()
           if [ -n "$FERRLABS_RULES" ]; then
             EXTRA+=(-f "$FERRLABS_RULES")
