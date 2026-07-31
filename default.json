@@ -39,8 +39,7 @@
     "automerge": true,
     "automergeType": "pr",
     "automergeStrategy": "squash",
-    "minimumReleaseAge": "0",
-    "prPriority": 10
+    "minimumReleaseAge": "0"
   },
   "osvVulnerabilityAlerts": true,
   "packageRules": [
@@ -81,12 +80,15 @@
       "groupName": "FerrLabs Kit"
     },
     {
-      "description": "FerrLabs Cargo crates published from Kit (`ferrlabs-*`) — same trust as @ferrlabs/ npm packages. No wait, automerge.",
+      "description": "FerrLabs Cargo crates published from Kit (`ferrlabs-*`) — same trust as @ferrlabs/ npm packages. No wait, automerge. registryUrls is required: these deps declare `registry = \"kellnr\"`, which Renovate resolves through `.cargo/config.toml` — but that file lives in each repo's `api/` subdirectory and is not discovered, so the lookup fails with `registry index was not found: kellnr` and no update is ever proposed. Pointing registryUrls at the sparse index bypasses that resolution, the same way the @ferrlabs/ npm rule overrides its registry. Auth comes from the crates.ferrlabs.com hostRule in renovate.yml.",
       "matchManagers": [
         "cargo"
       ],
       "matchDepPatterns": [
         "^ferrlabs-"
+      ],
+      "registryUrls": [
+        "https://crates.ferrlabs.com/api/v1/crates/"
       ],
       "schedule": [
         "* * * * *"
