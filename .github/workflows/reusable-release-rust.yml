@@ -109,7 +109,7 @@ jobs:
   upload:
     name: Attest + upload assets
     needs: build
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -133,7 +133,7 @@ jobs:
     name: Publish crates.io
     needs: upload
     if: inputs.crate-publish
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'group=ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
