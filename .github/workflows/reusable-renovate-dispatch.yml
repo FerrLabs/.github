@@ -24,7 +24,7 @@ on:
       runner:
         description: 'Runner label. Public repos must pass a GitHub-hosted runner — the ferrlabs-k8s group sets allows_public_repositories=false.'
         type: string
-        default: 'ferrlabs-k8s'
+        default: 'group=ferrlabs-k8s'
 
 permissions: {}
 
