@@ -1,114 +1,86 @@
 rules:
-  - id: ferrlabs-native-browser-dialog
-    languages: [typescript, javascript]
-    severity: ERROR
-    message: >-
-      Native browser dialog. These render the unstyled system dialog, are not
-      themeable, block the event loop and cannot be driven in tests. Use the
-      shared Modal/Dialog from @ferrlabs/ui-ng, or Toast for non-blocking
-      feedback.
-    patterns:
-      - pattern-either:
-          - pattern: window.alert(...)
-          - pattern: window.confirm(...)
-          - pattern: window.prompt(...)
-    paths:
-      exclude:
-        - "*.stories.tsx"
-        - "*.stories.ts"
-        - "*.spec.ts"
-        - "*.test.ts"
-        - "**/dist/**"
-        - "**/docs/design-bundle/**"
+- id: ferrlabs-native-browser-dialog
+  languages:
+  - typescript
+  - javascript
+  severity: ERROR
+  message: Native browser dialog. These render the unstyled system dialog, are not themeable, block the
+    event loop and cannot be driven in tests. Use the shared Modal/Dialog from @ferrlabs/ui-ng, or Toast
+    for non-blocking feedback.
+  patterns:
+  - pattern-either:
+    - pattern: window.alert(...)
+    - pattern: window.confirm(...)
+    - pattern: window.prompt(...)
+  paths:
+    exclude:
+    - '*.stories.tsx'
+    - '*.stories.ts'
+    - '*.spec.ts'
+    - '*.test.ts'
+    - '**/dist/**'
+    - '**/docs/design-bundle/**'
+- id: ferrlabs-stringly-typed-domain
+  languages:
+  - rust
+  severity: WARNING
+  message: 'Closed domain set validated by matching string literals. Model this as an enum with #[derive(sqlx::Type,
+    Deserialize)] and #[sqlx(type_name=...)] so serde rejects invalid input at deserialization and the
+    compiler enforces exhaustiveness. Hand-written validators drift from the database type they mirror.'
+  patterns:
+  - pattern-regex: match\s+\w+\s*\{\s*"[a-z_]+"\s*\|\s*"[a-z_]+"\s*(\|\s*"[a-z_]+"\s*)*=>
+  paths:
+    exclude:
+    - '**/tests/**'
+    - '**/migrations/**'
+- id: ferrlabs-jwt-validation-without-issuer
+  languages:
+  - rust
+  severity: WARNING
+  message: JWT decoded with a bare Validation — signature and exp only, no issuer or audience binding.
+    Add set_issuer / set_audience / set_required_spec_claims so a token minted for another purpose cannot
+    be replayed as a session.
+  patterns:
+  - pattern-either:
+    - pattern: decode::<$T>($TOK, $KEY, &Validation::default())
+    - pattern: decode::<$T>($TOK, $KEY, &Validation::new($ALG))
+  paths:
+    exclude:
+    - '**/tests/**'
+- id: ferrlabs-unbounded-public-query
+  languages:
+  - rust
+  severity: WARNING
+  message: fetch_all on an unauthenticated route with no LIMIT. A small request can force an arbitrarily
+    large response and scan. Cap the query and paginate.
+  patterns:
+  - pattern: $Q.fetch_all(...)
+  - pattern-not-inside: '$S = "...LIMIT...";
 
-  - id: ferrlabs-login-timing-oracle
-    languages: [rust]
-    severity: WARNING
-    message: >-
-      Login handler returns before verifying a password when the account is
-      absent. The unknown-account path answers in microseconds while a known
-      account pays the full hash cost, which turns the endpoint into an
-      account-existence oracle. Verify against a dummy hash on the absent
-      path so both branches take the same time (see FerrGames
-      `auth::password::dummy_hash`).
-    patterns:
-      - pattern-inside: |
-          async fn $LOGIN(...) -> $RET { ... }
-      - pattern: |
-          let $SOME_ROW = $ROW else { return Err(...); };
-          ...
-          $OK = verify_password(...);
-    paths:
-      exclude:
-        - "**/tests/**"
+      ...
 
-  - id: ferrlabs-stringly-typed-domain
-    languages: [rust]
-    severity: WARNING
-    message: >-
-      Closed domain set validated by matching string literals. Model this as an
-      enum with #[derive(sqlx::Type, Deserialize)] and #[sqlx(type_name=...)]
-      so serde rejects invalid input at deserialization and the compiler
-      enforces exhaustiveness. Hand-written validators drift from the database
-      type they mirror.
-    patterns:
-      - pattern-regex: 'match\s+\w+\s*\{\s*"[a-z_]+"\s*\|\s*"[a-z_]+"\s*(\|\s*"[a-z_]+"\s*)*=>'
-    paths:
-      exclude:
-        - "**/tests/**"
-        - "**/migrations/**"
-
-  - id: ferrlabs-jwt-validation-without-issuer
-    languages: [rust]
-    severity: WARNING
-    message: >-
-      JWT decoded with a bare Validation — signature and exp only, no issuer or
-      audience binding. Add set_issuer / set_audience / set_required_spec_claims
-      so a token minted for another purpose cannot be replayed as a session.
-    patterns:
-      - pattern-either:
-          - pattern: decode::<$T>($TOK, $KEY, &Validation::default())
-          - pattern: decode::<$T>($TOK, $KEY, &Validation::new($ALG))
-    paths:
-      exclude:
-        - "**/tests/**"
-
-  - id: ferrlabs-unbounded-public-query
-    languages: [rust]
-    severity: WARNING
-    message: >-
-      fetch_all on an unauthenticated route with no LIMIT. A small request can
-      force an arbitrarily large response and scan. Cap the query and paginate.
-    patterns:
-      - pattern: $Q.fetch_all(...)
-      - pattern-not-inside: |
-          $S = "...LIMIT...";
-          ...
-    paths:
-      include:
-        - "**/routes/public*.rs"
-
-  - id: ferrlabs-hardcoded-plan-limit
-    languages: [rust]
-    severity: WARNING
-    message: >-
-      Plan limit returned as a constant. Look the tier up through
-      ferrlabs-billing — a hardcoded cap gives paid features to free orgs and
-      caps the tiers that paid to remove the limit.
-    patterns:
-      - pattern-regex: 'fn\s+\w*(cap|limit)_for_plan\w*\([^)]*\)\s*->\s*[^{]+\{\s*(Some\()?\d+'
-
-  - id: ferrlabs-local-ui-primitive
-    languages: [typescript]
-    severity: WARNING
-    message: >-
-      Component selector duplicates a primitive shipped by @ferrlabs/ui-ng
-      (card, page-header, modal, button, input, badge/tag, empty, error).
-      Consume the shared component; if a variant is missing, add it to the
-      library rather than forking it locally — private copies drift.
-    patterns:
-      - pattern-regex: "selector:\\s*'[a-z]+-(card|page-header|modal|button|input|badge|pill|empty|error|pagination)'"
-    paths:
-      exclude:
-        - "**/dist/**"
-        - "**/node_modules/**"
+      '
+  paths:
+    include:
+    - '**/routes/public*.rs'
+- id: ferrlabs-hardcoded-plan-limit
+  languages:
+  - rust
+  severity: WARNING
+  message: Plan limit returned as a constant. Look the tier up through ferrlabs-billing — a hardcoded
+    cap gives paid features to free orgs and caps the tiers that paid to remove the limit.
+  patterns:
+  - pattern-regex: fn\s+\w*(cap|limit)_for_plan\w*\([^)]*\)\s*->\s*[^{]+\{\s*(Some\()?\d+
+- id: ferrlabs-local-ui-primitive
+  languages:
+  - typescript
+  severity: WARNING
+  message: Component selector duplicates a primitive shipped by @ferrlabs/ui-ng (card, page-header, modal,
+    button, input, badge/tag, empty, error). Consume the shared component; if a variant is missing, add
+    it to the library rather than forking it locally — private copies drift.
+  patterns:
+  - pattern-regex: selector:\s*'[a-z]+-(card|page-header|modal|button|input|badge|pill|empty|error|pagination)'
+  paths:
+    exclude:
+    - '**/dist/**'
+    - '**/node_modules/**'
