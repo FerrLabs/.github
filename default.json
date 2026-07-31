@@ -88,7 +88,7 @@
         "^ferrlabs-"
       ],
       "registryUrls": [
-        "https://crates.ferrlabs.com/api/v1/crates/"
+        "sparse+https://crates.ferrlabs.com/api/v1/crates/"
       ],
       "schedule": [
         "* * * * *"
