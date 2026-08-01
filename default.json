@@ -101,7 +101,7 @@
       "groupName": "FerrLabs Cargo crates"
     },
     {
-      "description": "Third-party npm — wait 1 day after release before opening PR (supply-chain quarantine), auto-merge only if mergeConfidence is high/very-high",
+      "description": "Third-party npm — quarantine for 3 days after release before opening PR, then auto-merge patch/minor. Release age is the only gate: this rule used to carry `matchMergeConfidence`, which is not a real Renovate option (the real one is `matchConfidence`) and therefore matched nothing, so the confidence gate never applied. Rather than adopt `matchConfidence` — which needs a Mend API key and reports `neutral` without one, silently disabling npm automerge everywhere — the quarantine is raised from 1 to 3 days, which is where most malicious publishes are detected and yanked. npm is deliberately stricter than the Cargo rule below: it is the ecosystem where these attacks actually land.",
       "matchManagers": [
         "npm"
       ],
@@ -112,11 +112,7 @@
         "patch",
         "minor"
       ],
-      "matchMergeConfidence": [
-        "high",
-        "very high"
-      ],
-      "minimumReleaseAge": "1 day",
+      "minimumReleaseAge": "3 days",
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash"
