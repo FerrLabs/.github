@@ -277,7 +277,7 @@ jobs:
       # private GHCR image fails with a 401/manifest-unknown.
       - name: Login to GHCR
         if: startsWith(inputs.image-name, 'ghcr.io/')
-        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -310,7 +310,7 @@ jobs:
         # because the Security-tab integration is unavailable.
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           sarif_file: trivy-results.sarif
           category: trivy
@@ -334,7 +334,7 @@ jobs:
           echo "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
       - name: Login to GHCR
         if: startsWith(inputs.image-name, 'ghcr.io/')
-        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -369,7 +369,7 @@ jobs:
       # a private GHCR image needs this login or the scan fails to fetch it.
       - name: Login to GHCR
         if: startsWith(inputs.image-name, 'ghcr.io/')
-        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

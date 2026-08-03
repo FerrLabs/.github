@@ -110,7 +110,7 @@ jobs:
           fi
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           sarif_file: gitleaks.sarif
           category: gitleaks
@@ -161,7 +161,7 @@ jobs:
           fi
       - name: Upload SARIF
         if: always() && hashFiles('osv-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           sarif_file: osv-results.sarif
           category: osv-scanner
@@ -246,7 +246,7 @@ jobs:
           exit 0
       - name: Upload SARIF
         if: always() && hashFiles('opengrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           sarif_file: opengrep.sarif
           category: opengrep
@@ -287,7 +287,7 @@ jobs:
           fi
       - name: Upload SARIF
         if: always() && hashFiles('zizmor.sarif') != ''
-        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           sarif_file: zizmor.sarif
           category: zizmor
@@ -380,7 +380,7 @@ jobs:
           exit 0
       - name: Upload SARIF
         if: always() && hashFiles('snyk.sarif') != ''
-        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4
         with:
           sarif_file: snyk.sarif
           category: snyk
