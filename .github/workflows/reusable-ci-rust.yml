@@ -179,10 +179,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
+        env:
+          APT_PACKAGES: ${{ inputs.apt-packages }}
+        # Ask dpkg before asking the network. Callers pass build deps that the
+        # self-hosted runner image already ships, so this step used to spend its
+        # whole time in `apt-get update` and install nothing: one run fetched
+        # 32 MB of package lists at 18 kB/s — 29 minutes — to report "0
+        # upgraded, 0 newly installed".
+        #
+        # Kept rather than dropped: a runner whose image lacks a package must
+        # still get it, and only what is genuinely missing is then fetched.
         run: |
+          missing=""
+          for pkg in $APT_PACKAGES; do
+            dpkg -s "$pkg" >/dev/null 2>&1 || missing="$missing $pkg"
+          done
+          if [ -z "$missing" ]; then
+            echo "already present, skipping apt: $APT_PACKAGES"
+            exit 0
+          fi
+          echo "missing:$missing"
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
-          $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
+          $SUDO apt-get install -y --no-install-recommends $missing
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
@@ -245,10 +264,20 @@ jobs:
         name: Install apt packages
         env:
           APT_PACKAGES: ${{ inputs.apt-packages }}
+        # Same guard as the other jobs: see the comment on the first one.
         run: |
+          missing=""
+          for pkg in $APT_PACKAGES; do
+            dpkg -s "$pkg" >/dev/null 2>&1 || missing="$missing $pkg"
+          done
+          if [ -z "$missing" ]; then
+            echo "already present, skipping apt: $APT_PACKAGES"
+            exit 0
+          fi
+          echo "missing:$missing"
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
-          $SUDO apt-get install -y --no-install-recommends $APT_PACKAGES
+          $SUDO apt-get install -y --no-install-recommends $missing
       - name: Install postgresql-client
         run: |
           if command -v createdb >/dev/null 2>&1; then exit 0; fi
@@ -341,10 +370,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
+        env:
+          APT_PACKAGES: ${{ inputs.apt-packages }}
+        # Ask dpkg before asking the network. Callers pass build deps that the
+        # self-hosted runner image already ships, so this step used to spend its
+        # whole time in `apt-get update` and install nothing: one run fetched
+        # 32 MB of package lists at 18 kB/s — 29 minutes — to report "0
+        # upgraded, 0 newly installed".
+        #
+        # Kept rather than dropped: a runner whose image lacks a package must
+        # still get it, and only what is genuinely missing is then fetched.
         run: |
+          missing=""
+          for pkg in $APT_PACKAGES; do
+            dpkg -s "$pkg" >/dev/null 2>&1 || missing="$missing $pkg"
+          done
+          if [ -z "$missing" ]; then
+            echo "already present, skipping apt: $APT_PACKAGES"
+            exit 0
+          fi
+          echo "missing:$missing"
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
-          $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
+          $SUDO apt-get install -y --no-install-recommends $missing
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
@@ -419,10 +467,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
+        env:
+          APT_PACKAGES: ${{ inputs.apt-packages }}
+        # Ask dpkg before asking the network. Callers pass build deps that the
+        # self-hosted runner image already ships, so this step used to spend its
+        # whole time in `apt-get update` and install nothing: one run fetched
+        # 32 MB of package lists at 18 kB/s — 29 minutes — to report "0
+        # upgraded, 0 newly installed".
+        #
+        # Kept rather than dropped: a runner whose image lacks a package must
+        # still get it, and only what is genuinely missing is then fetched.
         run: |
+          missing=""
+          for pkg in $APT_PACKAGES; do
+            dpkg -s "$pkg" >/dev/null 2>&1 || missing="$missing $pkg"
+          done
+          if [ -z "$missing" ]; then
+            echo "already present, skipping apt: $APT_PACKAGES"
+            exit 0
+          fi
+          echo "missing:$missing"
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
-          $SUDO apt-get install -y --no-install-recommends ${{ inputs.apt-packages }}
+          $SUDO apt-get install -y --no-install-recommends $missing
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
