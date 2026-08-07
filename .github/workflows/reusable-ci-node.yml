@@ -130,6 +130,19 @@ on:
 
 permissions:
   contents: read
+  # Lecture du registre npm de GitHub (`npm.pkg.github.com`), où vivent les
+  # paquets `@ferrlabs/*`.
+  #
+  # Sans cette permission, le repli sur `GITHUB_TOKEN` ne peut pas fonctionner :
+  # il est émis sans droit sur les paquets, et l'installation échoue en 401. Le
+  # CI ne tenait donc que par le PAT `FERRFLOW_PACKAGES_READ`, sans que la
+  # dépendance soit visible — un secret d'organisation absent aurait produit une
+  # erreur d'authentification incompréhensible plutôt qu'un repli.
+  #
+  # C'est aussi le préalable pour se passer de ce PAT classique (Infra#264) :
+  # une fois l'accès Actions du paquet accordé aux dépôts consommateurs,
+  # `GITHUB_TOKEN` suffit.
+  packages: read
 
 jobs:
   test:
