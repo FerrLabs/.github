@@ -63,6 +63,23 @@ on:
         type: string
         required: false
         default: ''
+      light-runner:
+        description: >-
+          Runner pour les scans LÉGERS (gitleaks, zizmor, osv-scanner) : des
+          binaires qui lisent des fichiers et un lockfile. Vide (défaut) =
+          `ferrlabs-k8s-light` sur les dépôts privés.
+
+          Les trois autres jobs restent sur `runner` : `opengrep` est un moteur
+          SAST qui charge l'arbre syntaxique du dépôt et dépasse couramment le
+          gigaoctet, `trufflehog` clone l'historique complet, et `snyk` résout
+          l'arbre de dépendances. Les envoyer sur `light` produirait des OOM,
+          pas un ralentissement.
+
+          Ignoré si `runner` est fourni : un appelant qui impose un runner
+          l'impose partout.
+        type: string
+        required: false
+        default: ''
       run-on-private:
         description: 'Set to `true` to run the scans on private repos too. Defaults to `false` because GitHub-hosted runners consume billed minutes on private repos and our security scans are best-effort hygiene, not blocking gates. Public repos always run (Actions are free for them).'
         type: boolean
@@ -76,7 +93,7 @@ permissions:
 jobs:
   gitleaks:
     name: gitleaks (secrets)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || inputs.light-runner != '' && inputs.light-runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -118,7 +135,7 @@ jobs:
 
   osv-scanner:
     name: osv-scanner (CVE)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || inputs.light-runner != '' && inputs.light-runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -254,7 +271,7 @@ jobs:
 
   zizmor:
     name: zizmor (GitHub Actions security)
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || inputs.light-runner != '' && inputs.light-runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     if: ${{ !github.event.repository.private || inputs.run-on-private }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
