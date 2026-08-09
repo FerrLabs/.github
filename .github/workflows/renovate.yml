@@ -76,11 +76,21 @@ jobs:
       #   - one shard per non-archived *-Cloud repo (each is a heavy
       #     api+web+docker monorepo, worth isolating so one slow/failing repo
       #     doesn't hold up the rest),
-      #   - grouped shards for tools / libs / infra,
+      #   - grouped shards for tools / libs / infra / games,
       #   - a `rest` catch-all owning every other non-archived repo.
-      # Shards are mutually exclusive and jointly exhaustive: a repo lands in
-      # exactly one, and any new repo not matching a named group falls into
-      # `rest`, so nothing is processed twice and nothing is silently dropped.
+      # Shards are mutually exclusive: un dépôt tombe dans exactement un.
+      #
+      # ⚠️ `rest` n'a jamais rien attrapé jusqu'au 2026-08-09 : le filtre
+      # s'écrivait `$named | index(.)`, où le `.` dans `index()` désigne
+      # l'entrée du pipe — c'est-à-dire `$named` lui-même, pas le dépôt
+      # courant. `$named | index($named)` vaut 0, donc `| not` valait false
+      # pour TOUT dépôt et `$rest` sortait toujours vide, sans erreur ni
+      # shard visible. Six dépôts n'ont donc jamais été scannés, dont
+      # FerrGames-Discord — qui consomme ce reusable de release.
+      #
+      # La forme `. as $n | $named | index($n)` capture la valeur courante
+      # avant le pipe. Si un shard `rest` apparaît dans un run, c'est normal :
+      # c'est ce qui manquait.
       - name: Compute shard matrix
         id: plan
         env:
@@ -101,15 +111,18 @@ jobs:
             --argjson repos "${repos}" \
             --argjson tools '["FerrFlow","FerrVault","Benchmarks","Fixtures",".github","MCP","Changelog","Status"]' \
             --argjson libs  '["Claude-Agents","actions-runner-image","UI","Kit"]' \
-            --argjson infra '["Infra","Kubernetes"]' '
+            --argjson infra '["Infra","Kubernetes"]' \
+            --argjson games '["FerrGames-Discord","ArchVeil","RogueLite","Idler-Survivor"]' '
             def flt($xs): [$xs[] | "FerrLabs/" + .] | join(",");
-            ($tools + $libs + $infra) as $named
+            ($tools + $libs + $infra + $games) as $named
             | ($repos | map(select(endswith("-Cloud")))) as $cloud
-            | ($repos | map(select((endswith("-Cloud") | not) and (($named | index(.)) | not)))) as $rest
+            | ($repos | map(select((endswith("-Cloud") | not)
+                                   and (. as $n | $named | index($n) | not)))) as $rest
             | ( ($cloud | map({shard: ., filter: ("FerrLabs/" + .)}))
                 + [ {shard: "tools", filter: (flt($tools))},
                     {shard: "libs",  filter: (flt($libs))},
-                    {shard: "infra", filter: (flt($infra))} ]
+                    {shard: "infra", filter: (flt($infra))},
+                    {shard: "games", filter: (flt($games))} ]
                 + (if ($rest | length) > 0 then [{shard: "rest", filter: (flt($rest))}] else [] end)
               ) as $inc
             | {include: $inc}')
