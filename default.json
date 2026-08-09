@@ -149,6 +149,18 @@
       "groupName": "GitHub Actions"
     },
     {
+      "description": "Actions et workflows réutilisables maison — pas de délai, pas d'attente du lundi. La règle précédente fait patienter 3 jours parce que les auteurs tiers re-taguent après publication ; sur nos propres dépôts ce risque n'existe pas, on contrôle le contenu et le SHA. Sans cette exception, un changement dans FerrLabs/.github met jusqu'à quatre jours à atteindre les dépôts consommateurs (schedule lundi + 3 jours d'âge), ce qui bloque toute bascule coordonnée. `FerrLabs/.github` est nommé explicitement : un glob minimatch n'attrape pas un segment commençant par un point.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["FerrLabs/.github", "FerrLabs/**"],
+      "schedule": ["at any time"],
+      "minimumReleaseAge": "0",
+      "internalChecksFilter": "none",
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "groupName": "FerrLabs actions"
+    },
+    {
       "description": "Dockerfile base images — wait 3 days, grouped + auto-merge weekly",
       "matchManagers": [
         "dockerfile"
