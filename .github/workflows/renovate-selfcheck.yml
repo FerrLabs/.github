@@ -1,0 +1,177 @@
+name: Renovate self-check
+
+# Guards the two things that silently broke the ferrlabs-* Kellnr lookups for
+# a month (issue #205) and that nothing else notices:
+#
+#   validate      — the shared preset still parses under the *current* Renovate,
+#                   with no removed/deprecated options. `matchPackagePatterns`
+#                   and `matchDepPatterns` were dropped in Renovate 41 and the
+#                   config kept "working" only because Renovate auto-migrates
+#                   at runtime; --strict turns that into a failure.
+#
+#   kellnr-lookup — a real Renovate run against tests/renovate/fixture, which
+#                   reproduces a product repo's layout (crate under api/, the
+#                   kellnr registry declared in a .cargo/config.toml Renovate
+#                   never reads). Asserts that a ferrlabs-* crate actually
+#                   resolves and produces an update. This is the only check
+#                   that catches a missing allowCustomCrateRegistries or a
+#                   hostRule whose hostType doesn't match the datasource id —
+#                   both of which fail as a WARN plus `no-result`, never as a
+#                   non-zero exit.
+#
+# Runs on any change to the Renovate config, and on a schedule 30 minutes
+# after each sweep so a regression coming from Renovate itself (a datasource
+# change, a registry outage, an expired CARGO_REGISTRIES_KELLNR_TOKEN) shows
+# up as a red run rather than as an absence of PRs.
+
+on:
+  pull_request:
+    paths:
+      - "default.json"
+      - "renovate.json"
+      - "snippets/renovate.json"
+      - "tests/renovate/**"
+      - ".github/workflows/renovate.yml"
+      - ".github/workflows/renovate-selfcheck.yml"
+  schedule:
+    - cron: "30 */6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  # Keep in step with the Renovate bundled by renovatebot/github-action in
+  # renovate.yml — a major here should be raised when that action's major is.
+  # Pinned to a major (not `latest`) so an upstream breaking change surfaces
+  # as a deliberate bump rather than as a surprise red run.
+  RENOVATE_VERSION: "41"
+
+jobs:
+  validate:
+    name: Validate config (strict)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+
+      - name: renovate-config-validator --strict
+        run: |
+          npx --yes --package "renovate@${RENOVATE_VERSION}" \
+            renovate-config-validator --strict \
+            default.json renovate.json snippets/renovate.json
+
+  kellnr-lookup:
+    name: Resolve a ferrlabs-* crate end to end
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Fork PRs get no secrets, so the Kellnr token would be empty and the run
+    # would fail for a reason unrelated to the change. The validate job above
+    # still covers them.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+
+      - name: Fail fast if the Kellnr token is missing
+        env:
+          CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
+        run: |
+          if [ -z "${CARGO_REGISTRIES_KELLNR_TOKEN}" ]; then
+            echo "::error::CARGO_REGISTRIES_KELLNR_TOKEN is not set for this run." \
+                 "Renovate cannot read the private Kellnr sparse index without it."
+            exit 1
+          fi
+
+      # Mirrors the real sweep's Cargo configuration exactly: same registry
+      # URL, same hostRule, same global flag, same shared preset. If any of
+      # them regresses in renovate.yml or default.json, this run stops finding
+      # the update.
+      - name: Run Renovate against the fixture
+        working-directory: tests/renovate/fixture
+        env:
+          LOG_LEVEL: debug
+          RENOVATE_PLATFORM: local
+          RENOVATE_DRY_RUN: full
+          RENOVATE_ONBOARDING: "false"
+          RENOVATE_REQUIRE_CONFIG: optional
+          RENOVATE_CONFIG_FILE: ${{ github.workspace }}/default.json
+          RENOVATE_ALLOW_CUSTOM_CRATE_REGISTRIES: "true"
+          RENOVATE_CUSTOM_ENV_VARIABLES: |
+            {
+              "CARGO_REGISTRIES_KELLNR_INDEX": "sparse+https://crates.ferrlabs.com/api/v1/crates/",
+              "CARGO_REGISTRIES_KELLNR_TOKEN": "${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}",
+              "CARGO_REGISTRY_GLOBAL_CREDENTIAL_PROVIDERS": "cargo:token"
+            }
+          RENOVATE_HOST_RULES: |
+            [
+              {
+                "matchHost": "crates.ferrlabs.com",
+                "hostType": "crate",
+                "token": "${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}"
+              }
+            ]
+        # Redirected, not tee'd: at LOG_LEVEL=debug Renovate echoes its
+        # resolved config, and the Kellnr token appears there verbatim (it is
+        # not among the fields it sanitizes). Actions would mask it on the way
+        # out, but there is no reason to push it through the job log at all.
+        # The assert step below surfaces the lines that matter.
+        run: |
+          npx --yes --package "renovate@${RENOVATE_VERSION}" renovate \
+            > "${RUNNER_TEMP}/renovate.log" 2>&1
+
+      # always(), so that a Renovate run which exits non-zero still reports
+      # *why* rather than leaving a step that swallowed its own output.
+      - name: Assert the crate resolved
+        if: always()
+        env:
+          LOG: ${{ runner.temp }}/renovate.log
+        run: |
+          set -euo pipefail
+          fail=0
+
+          if [ ! -s "${LOG}" ]; then
+            echo "::error::Renovate produced no log — the run did not start."
+            exit 1
+          fi
+
+          if grep -qE 'Failed to look up crate package ferrlabs-' "${LOG}"; then
+            echo "::error::A ferrlabs-* crate lookup returned no-result." \
+                 "Kit releases are not reaching the product repos — see issue #205."
+            grep -E 'Failed to look up crate package ferrlabs-' "${LOG}" | sort -u
+            fail=1
+          fi
+
+          if grep -q 'allowCustomCrateRegistries=true is required' "${LOG}"; then
+            echo "::error::The crate datasource refused crates.ferrlabs.com." \
+                 "RENOVATE_ALLOW_CUSTOM_CRATE_REGISTRIES must be set in renovate.yml."
+            fail=1
+          fi
+
+          # The positive assertion. The fixture pins ferrlabs-queue to 0.1.0,
+          # which is the oldest published version, so a working lookup always
+          # yields at least one update. Its absence means the dep was skipped,
+          # unresolved, or filtered out by a packageRule.
+          if ! grep -qE 'flattened updates found:.*ferrlabs-queue' "${LOG}"; then
+            echo "::error::No update was proposed for ferrlabs-queue." \
+                 "The lookup did not resolve against the Kellnr sparse index."
+            grep -E 'ferrlabs-queue|skipReason' "${LOG}" | tail -20 || true
+            fail=1
+          fi
+
+          if [ "${fail}" -ne 0 ]; then
+            exit 1
+          fi
+          echo "ok — ferrlabs-queue resolves from crates.ferrlabs.com and an update was found"

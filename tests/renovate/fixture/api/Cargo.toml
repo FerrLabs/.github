@@ -1,0 +1,11 @@
+# Fixture manifest — see ../../README.md. Mirrors a product repo: the crate
+# lives under api/, and ferrlabs-queue is pinned to the oldest published
+# version so the self-check can assert that an update is proposed.
+[package]
+name = "renovate-selfcheck-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ferrlabs-queue = { version = "0.1.0", registry = "kellnr" }

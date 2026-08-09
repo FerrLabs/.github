@@ -44,9 +44,9 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "description": "FerrLabs npm packages — trust them, scan often, merge without delay. Override registry to GHCR (npm.pkg.github.com) since these packages aren't on npmjs.org. Auth comes from RENOVATE_HOST_RULES env in the runner workflow. internalChecksFilter:none skips the stability-days gate inherited from the global default.",
-      "matchPackagePatterns": [
-        "^@ferrlabs/"
+      "description": "FerrLabs npm packages — trust them, scan often, merge without delay. Override registry to GHCR (npm.pkg.github.com) since these packages aren't on npmjs.org. Auth comes from RENOVATE_HOST_RULES env in the runner workflow. internalChecksFilter:none skips the stability-days gate inherited from the global default. In practice this rule is belt-and-braces for the registry: each consuming repo's `.npmrc` already carries `@ferrlabs:registry=https://npm.pkg.github.com`, so the lookup resolves without it — the rule is what supplies the automerge/schedule policy.",
+      "matchPackageNames": [
+        "/^@ferrlabs\\//"
       ],
       "registryUrls": [
         "https://npm.pkg.github.com"
@@ -80,12 +80,12 @@
       "groupName": "FerrLabs Kit"
     },
     {
-      "description": "FerrLabs Cargo crates published from Kit (`ferrlabs-*`) — same trust as @ferrlabs/ npm packages. No wait, automerge. registryUrls is required: these deps declare `registry = \"kellnr\"`, which Renovate resolves through `.cargo/config.toml` — but that file lives in each repo's `api/` subdirectory and is not discovered, so the lookup fails with `registry index was not found: kellnr` and no update is ever proposed. Pointing registryUrls at the sparse index bypasses that resolution, the same way the @ferrlabs/ npm rule overrides its registry. Auth comes from the crates.ferrlabs.com hostRule in renovate.yml.",
+      "description": "FerrLabs Cargo crates published from Kit (`ferrlabs-*`) — same trust as @ferrlabs/ npm packages. No wait, automerge. registryUrls is a fallback: these deps declare `registry = \"kellnr\"`, which the cargo manager resolves from `.cargo/config.toml` relative to the repo root — but that file lives in each repo's `api/` subdirectory and is not discovered, so the dep would be skipped as `unknown-registry`. In practice the runner supplies CARGO_REGISTRIES_KELLNR_INDEX via RENOVATE_CUSTOM_ENV_VARIABLES, which the extractor reads first (getCargoIndexEnv); registryUrls here covers the case where that env is missing. Note that neither is sufficient on its own: the crate datasource refuses every non-crates.io registry unless allowCustomCrateRegistries=true, which is a global-only option set as RENOVATE_ALLOW_CUSTOM_CRATE_REGISTRIES in renovate.yml. Auth comes from the crates.ferrlabs.com hostRule there, which must use hostType `crate` (the datasource id) — `cargo` is the manager id and matches no hostRule.",
       "matchManagers": [
         "cargo"
       ],
-      "matchDepPatterns": [
-        "^ferrlabs-"
+      "matchDepNames": [
+        "/^ferrlabs-/"
       ],
       "registryUrls": [
         "sparse+https://crates.ferrlabs.com/api/v1/crates/"
@@ -105,8 +105,8 @@
       "matchManagers": [
         "npm"
       ],
-      "excludePackagePatterns": [
-        "^@ferrlabs/"
+      "matchPackageNames": [
+        "!/^@ferrlabs\\//"
       ],
       "matchUpdateTypes": [
         "patch",
@@ -122,8 +122,8 @@
       "matchManagers": [
         "cargo"
       ],
-      "excludeDepNames": [
-        "/^ferrlabs-/"
+      "matchDepNames": [
+        "!/^ferrlabs-/"
       ],
       "matchUpdateTypes": [
         "patch",
@@ -191,8 +191,8 @@
     {
       "customType": "regex",
       "description": "FerrLabs Kit crates pinned via git rev = ... in Cargo.toml. Tracks the HEAD of `main` via the git-refs datasource — Kit publishes per-crate tags (ferrlabs-types-v0.4.0 etc.), not a single repo-wide semver tag, so github-tags doesn't fit. git-refs returns the SHA of refs/heads/main and Renovate bumps the rev= to it.",
-      "fileMatch": [
-        "(^|/)Cargo\\.toml$"
+      "managerFilePatterns": [
+        "/(^|/)Cargo\\.toml$/"
       ],
       "matchStrings": [
         "ferrlabs-[a-z\\-]+\\s*=\\s*\\{\\s*git\\s*=\\s*\"https://github.com/FerrLabs/Kit\\.git\"\\s*,\\s*rev\\s*=\\s*\"(?<currentDigest>[a-f0-9]+)\"\\s*\\}"
