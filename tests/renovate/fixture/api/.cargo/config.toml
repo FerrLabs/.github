@@ -1,0 +1,8 @@
+# Copy of the .cargo/config.toml every product repo carries under api/.
+# Renovate's cargo manager looks for .cargo/config.toml from the repo root,
+# so it never reads this file — which is exactly the condition under test.
+[registries.kellnr]
+index = "sparse+https://crates.ferrlabs.com/api/v1/crates/"
+
+[registry]
+global-credential-providers = ["cargo:token"]

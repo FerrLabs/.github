@@ -202,6 +202,17 @@ jobs:
           RENOVATE_AUTODISCOVER_FILTER: ${{ matrix.filter }}
           RENOVATE_PLATFORM: "github"
           RENOVATE_REPOSITORY_CACHE: "enabled"
+          # REQUIRED for the private Kellnr registry. The crate datasource
+          # hard-refuses any registry whose host isn't index.crates.io unless
+          # this is set — it bails out before issuing a single request
+          # (`registry.flavor !== 'crates.io' && !GlobalConfig.get(...)` in
+          # modules/datasource/crate). Every ferrlabs-* lookup then reports
+          # `no-result`, which reads like a missing crate rather than a config
+          # gate, and no Kit update is ever proposed. It is a globalOnly
+          # option, so it cannot live in default.json (that file is also
+          # consumed as a shared preset by every repo, where global options
+          # are rejected) — it has to come from the environment here.
+          RENOVATE_ALLOW_CUSTOM_CRATE_REGISTRIES: "true"
           # Private Kellnr cargo registry, needed so Renovate's `cargo update`
           # lockfile runs resolve it. The registry lives in each repo's
           # api/.cargo/config.toml, but Renovate invokes cargo from the repo root
@@ -252,6 +263,13 @@ jobs:
           # The github-tags / git-refs hostRules below keep the App token for
           # cross-repo octokit calls (release notes) and the git-refs datasource
           # fetching FerrLabs/Kit refs/heads/main.
+          #
+          # `hostType` must be a *datasource* id, never a manager id: hostRules
+          # are matched with a plain `search.hostType === rule.hostType`, and
+          # the datasource sets it from its own id. The Cargo one is `crate`
+          # (CrateDatasource.id) — `cargo` is the manager and matches nothing,
+          # so the Kellnr rule silently contributed no token and the sparse
+          # index answered 401, surfacing as the same `no-result` as above.
           RENOVATE_HOST_RULES: |
             [
               {
@@ -271,7 +289,7 @@ jobs:
               },
               {
                 "matchHost": "crates.ferrlabs.com",
-                "hostType": "cargo",
+                "hostType": "crate",
                 "token": "${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}"
               }
             ]
