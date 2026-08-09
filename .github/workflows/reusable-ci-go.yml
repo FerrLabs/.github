@@ -265,7 +265,7 @@ jobs:
     if: inputs.enable-sonar && !cancelled()
     # needs: test so the coverage artifact exists before the scan downloads it.
     needs: test
-    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@e01fb75f1dd050e90493b7a65f0ebd95c634ebe6 # main
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@7680ac20e482c2b72bbc1a73820515207d46eeaf # main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}
