@@ -111,7 +111,7 @@ jobs:
             --argjson repos "${repos}" \
             --argjson tools '["FerrFlow","FerrVault","Benchmarks","Fixtures",".github","MCP","Changelog","Status"]' \
             --argjson libs  '["Claude-Agents","actions-runner-image","UI","Kit"]' \
-            --argjson infra '["Infra","Kubernetes"]' \
+            --argjson infra '["Infra","Kubernetes","Docker-Runners"]' \
             --argjson games '["FerrGames-Discord","ArchVeil","RogueLite","Idler-Survivor"]' '
             def flt($xs): [$xs[] | "FerrLabs/" + .] | join(",");
             ($tools + $libs + $infra + $games) as $named
