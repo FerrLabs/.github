@@ -81,10 +81,20 @@ on:
         required: false
         default: ''
       run-on-private:
-        description: 'Set to `true` to run the scans on private repos too. Defaults to `false` because GitHub-hosted runners consume billed minutes on private repos and our security scans are best-effort hygiene, not blocking gates. Public repos always run (Actions are free for them).'
+        description: >-
+          Run the scans on private repos. Defaults to `true` since #202: it
+          used to default to `false` to avoid burning billed GitHub-hosted
+          minutes, but private repos now land on the self-hosted
+          `ferrlabs-k8s*` pool, so there is nothing left to save. Opting out
+          per repo was the wrong shape — six repos, including `Kit` and
+          `Infra`, sat unscanned while their runs reported green, and the
+          count grew with every new private repo.
+
+          Set to `false` to deliberately skip a private repo. The `scanned`
+          job then fails, so the opt-out is visible rather than silent.
         type: boolean
         required: false
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -402,3 +412,37 @@ jobs:
           sarif_file: snyk.sarif
           category: snyk
         continue-on-error: true
+
+  # The reason #202 sat open for as long as it did: when the private gate
+  # blocked every job, the workflow still reported success. A skipped run and
+  # a clean run were indistinguishable in the UI, in the checks API, and in
+  # branch protection. This job is the difference.
+  #
+  # trufflehog is excluded on purpose — it is additionally gated on
+  # schedule/workflow_dispatch, so it legitimately skips on push and PR, and
+  # counting it would fire this on every ordinary run.
+  scanned:
+    name: Scans ran
+    needs: [gitleaks, osv-scanner, opengrep, zizmor, snyk]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Assert the scan jobs were not all skipped
+        env:
+          RESULTS: ${{ needs.gitleaks.result }} ${{ needs.osv-scanner.result }} ${{ needs.opengrep.result }} ${{ needs.zizmor.result }} ${{ needs.snyk.result }}
+          IS_PRIVATE: ${{ github.event.repository.private }}
+        run: |
+          set -euo pipefail
+          ran=0
+          for r in ${RESULTS}; do
+            [ "${r}" = "skipped" ] || ran=$((ran + 1))
+          done
+
+          if [ "${ran}" -eq 0 ]; then
+            echo "::error::Every security scan job was skipped — this repository is not being scanned." \
+                 "private=${IS_PRIVATE}. If that is deliberate, say so in the caller;" \
+                 "otherwise remove \`run-on-private: false\`. See FerrLabs/.github#202."
+            exit 1
+          fi
+          echo "ok — ${ran}/5 scan jobs ran (results: ${RESULTS})"
