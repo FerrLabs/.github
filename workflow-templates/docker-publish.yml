@@ -18,7 +18,7 @@ permissions:
 jobs:
   build:
     name: Build, scan, sign, publish
-    uses: FerrLabs/.github/.github/workflows/reusable-docker-build.yml@4e9ca90505047dafbfa04f7b307cebbfe579fea6 # main
+    uses: FerrLabs/.github/.github/workflows/reusable-docker-build.yml@a7ef996e178897e374b2f74161b57e75f8831ed5 # main
     with:
       image-name: ghcr.io/ferrlabs/${{ github.event.repository.name }}
       tag: ${{ inputs.tag || github.ref_name }}
