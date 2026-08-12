@@ -13,11 +13,11 @@
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "lockFileMaintenance": {
+    "description": "Refresh lockfiles weekly. This is the one path that bypasses the npm quarantine below: lock file maintenance resolves every transitive dep to whatever the registry serves at that moment, and minimumReleaseAge is not reliably applied to this update type — so a package republished with a malicious version (keyv/cacheable, 2026-08-04) could land here hours after publication. Two gates: the release age is declared explicitly in case the manager does honour it, and automerge is off so the refreshed lockfile is always reviewed by a human before it reaches main.",
     "enabled": true,
     "schedule": ["before 6am on monday"],
-    "automerge": true,
-    "automergeType": "pr",
-    "automergeStrategy": "squash"
+    "minimumReleaseAge": "3 days",
+    "automerge": false
   },
   "labels": [
     "dependencies"
