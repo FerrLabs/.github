@@ -425,7 +425,11 @@ jobs:
     name: Scans ran
     needs: [gitleaks, osv-scanner, opengrep, zizmor, snyk]
     if: always()
-    runs-on: ubuntu-latest
+    # Même sélection que les scans légers : une assertion en shell n'a aucune
+    # raison de coûter une minute facturée de runner hébergé sur un dépôt
+    # privé, alors que tous les autres jobs de ce workflow atterrissent déjà
+    # sur le pool auto-hébergé.
+    runs-on: ${{ inputs.runner != '' && inputs.runner || inputs.light-runner != '' && inputs.light-runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     permissions: {}
     steps:
       - name: Assert the scan jobs were not all skipped
