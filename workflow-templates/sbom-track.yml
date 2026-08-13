@@ -11,5 +11,5 @@ permissions:
 jobs:
   sbom:
     name: SBOM → Dependency-Track
-    uses: FerrLabs/.github/.github/workflows/reusable-sbom-track.yml@ea1f4120a477cc6206e745c1f3519c4b6adcfca2 # main
+    uses: FerrLabs/.github/.github/workflows/reusable-sbom-track.yml@ef9da0fd09e9d1d184c8307199171ff742125280 # main
     secrets: inherit
