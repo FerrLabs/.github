@@ -76,6 +76,17 @@ on:
         type: string
         required: false
         default: 'ubuntu-latest'
+      sccache-gha:
+        description: >-
+          Cache compiled artifacts in the GitHub Actions cache for the duration
+          of the image build. For repositories that build on hosted runners,
+          where the garage S3 cache the self-hosted pool uses is unreachable.
+          The job exports the Actions cache credentials itself: they live in the
+          runner environment and cannot be read from a workflow expression, so
+          a caller cannot pass them in.
+        type: boolean
+        required: false
+        default: false
       ref:
         description: >-
           Git ref to build. Empty (default) builds whatever the calling workflow
@@ -154,6 +165,19 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: buildah login -u "${{ github.actor }}" --password-stdin ghcr.io <<< "$GHCR_TOKEN"
+      # The Actions cache endpoint and token exist only inside a step's
+      # environment. Exporting them here is what lets the build reach the cache;
+      # they are handed to buildah as build secrets, never as build-args, so
+      # they cannot land in an image layer.
+      - name: Expose the Actions cache to the build
+        if: inputs.sccache-gha
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            for (const name of ['ACTIONS_CACHE_URL', 'ACTIONS_RESULTS_URL', 'ACTIONS_RUNTIME_TOKEN']) {
+              core.exportVariable(name, process.env[name] ?? '')
+            }
+
       - name: Build & push (buildah)
         id: push
         env:
@@ -171,6 +195,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.cargo-registry-token }}
           SCCACHE_S3_KEY: ${{ secrets.sccache-s3-key }}
           SCCACHE_S3_SECRET: ${{ secrets.sccache-s3-secret }}
+          SCCACHE_GHA: ${{ inputs.sccache-gha }}
           CACHE: ${{ inputs.cache }}
           CACHE_TTL: ${{ inputs.cache-ttl }}
         run: |
@@ -189,6 +214,14 @@ jobs:
           # neither: a key without its secret would have the Dockerfile wire up
           # sccache against credentials that cannot authenticate, turning a
           # cache miss into a build failure.
+          if [ "${SCCACHE_GHA:-false}" = "true" ] && [ -n "${ACTIONS_RUNTIME_TOKEN:-}" ]; then
+          if [ "${SCCACHE_GHA:-false}" = "true" ] && [ -n "${ACTIONS_RUNTIME_TOKEN:-}" ] && [ -n "${ACTIONS_CACHE_URL:-${ACTIONS_RESULTS_URL:-}}" ]; then
+            printf '%s' "$ACTIONS_RUNTIME_TOKEN" >"$RUNNER_TEMP/gha-runtime-token"
+            secret_args+=(--secret "id=gha-cache-url,src=$RUNNER_TEMP/gha-cache-url")
+            secret_args+=(--secret "id=gha-runtime-token,src=$RUNNER_TEMP/gha-runtime-token")
+            echo "Actions cache passed to the build"
+          fi
+
           if [ -n "${SCCACHE_S3_KEY:-}" ] && [ -n "${SCCACHE_S3_SECRET:-}" ]; then
             printf '%s' "$SCCACHE_S3_KEY" > "$RUNNER_TEMP/sccache-s3-key"
             printf '%s' "$SCCACHE_S3_SECRET" > "$RUNNER_TEMP/sccache-s3-secret"
@@ -231,7 +264,7 @@ jobs:
             --manifest "$IMAGE:$TAG" \
             -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
 
-          rm -f "$RUNNER_TEMP/packages-read" "$RUNNER_TEMP/cargo-registry-token"
+          rm -f "$RUNNER_TEMP/packages-read" "$RUNNER_TEMP/cargo-registry-token" "$RUNNER_TEMP/gha-cache-url" "$RUNNER_TEMP/gha-runtime-token"
 
           if [ -n "${SMOKE_CMD:-}" ]; then
             echo "::group::smoke test"
