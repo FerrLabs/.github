@@ -26,7 +26,7 @@ We build small, opinionated tools for the parts of the dev workflow you should n
 
 ## Open source
 
-### [FerrFlow](https://github.com/FerrLabs/FerrFlow) · v7 · MPL-2.0
+### [FerrFlow](https://github.com/FerrLabs/FerrFlow) · v7
 
 Universal semantic versioning. One Rust binary reads your conventional commits, bumps versions across your monorepo (14+ file formats — `Cargo.toml`, `package.json`, `pyproject.toml`, `Chart.yaml`, `mix.exs`, gemspec, `pubspec.yaml`, …), generates changelogs, tags, and ships GitHub releases. Drop it into any CI.
 
