@@ -76,6 +76,16 @@ on:
         type: string
         required: false
         default: 'ubuntu-latest'
+      ref:
+        description: >-
+          Git ref to build. Empty (default) builds whatever the calling workflow
+          runs on, which is right for a release-triggered build. Pass the tag
+          when rebuilding an older version by hand: without it a manual re-run
+          builds the current branch and labels it with the version you asked
+          for, producing an image whose tag lies about its contents.
+        type: string
+        required: false
+        default: ''
     outputs:
       digest:
         description: 'Image digest (sha256:...)'
@@ -110,6 +120,8 @@ jobs:
     runs-on: ${{ github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
       - name: Lint Dockerfile (hadolint)
         run: |
           curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 \
@@ -130,6 +142,8 @@ jobs:
       digest: ${{ steps.push.outputs.digest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
       # The self-hosted ARC runners have buildah, not a Docker daemon — so we
       # build/push with buildah (not docker/buildx). The cosign / Trivy / SBOM
       # jobs below pull the pushed image from the registry, so they need no
