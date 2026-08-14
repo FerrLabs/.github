@@ -264,7 +264,7 @@ jobs:
             --manifest "$IMAGE:$TAG" \
             -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
 
-          rm -f "$RUNNER_TEMP/packages-read" "$RUNNER_TEMP/cargo-registry-token"             "$RUNNER_TEMP/gha-cache-url" "$RUNNER_TEMP/gha-runtime-token"
+          rm -f "$RUNNER_TEMP/packages-read" "$RUNNER_TEMP/cargo-registry-token" "$RUNNER_TEMP/gha-cache-url" "$RUNNER_TEMP/gha-runtime-token"
 
           if [ -n "${SMOKE_CMD:-}" ]; then
             echo "::group::smoke test"
