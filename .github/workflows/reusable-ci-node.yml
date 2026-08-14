@@ -296,7 +296,7 @@ jobs:
       contents: read
       packages: read
       pull-requests: write
-    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@6d34e2e4e8ef992cadbfb764423a7ca9c921ad0e # main
+    uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@2883414f68b4029d28d8700d2a51d070f7528111 # main
     with:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}
