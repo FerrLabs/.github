@@ -215,7 +215,7 @@ jobs:
           # sccache against credentials that cannot authenticate, turning a
           # cache miss into a build failure.
           if [ "${SCCACHE_GHA:-false}" = "true" ] && [ -n "${ACTIONS_RUNTIME_TOKEN:-}" ]; then
-            printf '%s' "${ACTIONS_CACHE_URL:-${ACTIONS_RESULTS_URL:-}}" >"$RUNNER_TEMP/gha-cache-url"
+          if [ "${SCCACHE_GHA:-false}" = "true" ] && [ -n "${ACTIONS_RUNTIME_TOKEN:-}" ] && [ -n "${ACTIONS_CACHE_URL:-${ACTIONS_RESULTS_URL:-}}" ]; then
             printf '%s' "$ACTIONS_RUNTIME_TOKEN" >"$RUNNER_TEMP/gha-runtime-token"
             secret_args+=(--secret "id=gha-cache-url,src=$RUNNER_TEMP/gha-cache-url")
             secret_args+=(--secret "id=gha-runtime-token,src=$RUNNER_TEMP/gha-runtime-token")
