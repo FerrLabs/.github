@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   release:
-    uses: FerrLabs/.github/.github/workflows/reusable-ferrflow-release.yml@845df518f6257393df2ac6e52f0f306ba661b15d # main
+    uses: FerrLabs/.github/.github/workflows/reusable-ferrflow-release.yml@6d34e2e4e8ef992cadbfb764423a7ca9c921ad0e # main
     with:
       dry-run: ${{ inputs.dry_run || false }}
     secrets: inherit
