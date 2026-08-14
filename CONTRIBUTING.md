@@ -53,6 +53,27 @@ Keep the subject line concise and clean — no AI-attribution trailers.
 - A maintainer ([@BryanFRD](https://github.com/BryanFRD)) will review. Address
   feedback by pushing follow-up commits; we squash on merge.
 
+## Using AI assistants
+
+Writing code, tests or documentation with an AI assistant is entirely allowed — we do
+it too. Nothing else changes: you are the author, you are accountable for what you
+open, and you should be able to explain any line of it in review.
+
+The one thing that genuinely hurts is size. An assistant produces two thousand lines
+in a minute, and then a single maintainer has to read all of them. A pull request that
+changes everything at once takes days to get through, gets a worse review than a small
+one would, and stalls on a question that only concerns one corner of it.
+
+So keep the diff proportional to the change, not to what the tool was able to generate:
+
+- One logical change per pull request. Split a large piece of work into a sequence of
+  pull requests that each stand on their own and each make sense to merge.
+- If a wide refactor is genuinely unavoidable, land it alone, separately from any
+  change in behavior, and say so in the description.
+- Generated tests are still tests: they have to be able to fail. Drop the ones that
+  only restate the implementation.
+- Write the description yourself. An assistant's summary of its own diff is not one.
+
 ## Reporting bugs and requesting features
 
 Use the issue templates under each repository's **Issues → New issue**. For security
