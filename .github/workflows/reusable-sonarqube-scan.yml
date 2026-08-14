@@ -109,7 +109,7 @@ jobs:
       - name: SAST → SonarQube external issues
         id: sast
         if: inputs.sast
-        uses: FerrLabs/.github/.github/actions/sast-external-issues@5aec567fa6bfb149af54fc1819b1603bb7205c28 # main
+        uses: FerrLabs/.github/.github/actions/sast-external-issues@845df518f6257393df2ac6e52f0f306ba661b15d # main
         with:
           working-directory: ${{ inputs.working-directory }}
           sast-config: ${{ inputs.sast-config }}
