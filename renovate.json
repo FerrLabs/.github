@@ -1,4 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>FerrLabs/.github"]
+  "extends": ["github>FerrLabs/.github"],
+  "packageRules": [
+    {
+      "description": "Ne pas suivre les references de ce depot vers lui-meme. Les workflows reutilisables d'ici s'appellent entre eux via FerrLabs/.github@<sha>, et `helpers:pinGitHubActionDigests` epingle ce sha. Chaque merge deplace main, ce qui perime le pin qui vient d'etre ecrit, ce qui produit la PR suivante : 18 commits de bot qui court apres sa propre queue (#249). La regle est locale a ce depot, les autres continuent de mettre a jour leur pin FerrLabs/.github normalement.",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["FerrLabs/.github"],
+      "enabled": false
+    }
+  ]
 }
