@@ -1,11 +1,15 @@
+<div align="center">
+
 # FerrLabs `.github`
 
-Organization-level defaults for every repository in the
-[FerrLabs](https://github.com/FerrLabs) GitHub organization.
+**Organization-level defaults for every FerrLabs repository.**
 
-Files here are **inherited automatically** by any repo that does not ship its own
-version — community health files, the org profile, shared CI, and config presets all
-live in one place.
+Community health files, the org profile, shared reusable workflows and config presets,<br />
+inherited automatically by any repo that does not ship its own version.
+
+[github.com/FerrLabs](https://github.com/FerrLabs)
+
+</div>
 
 ## What's in here
 
@@ -14,7 +18,7 @@ live in one place.
 | `profile/README.md` | The public [organization profile](https://github.com/FerrLabs) page. |
 | `.github/workflows/` | **Reusable workflows** (`reusable-ci-*`, `reusable-docker-build`, `reusable-release-rust`, `reusable-security-scan`, `reusable-sonarqube-scan`) called by repos via `workflow_call`, plus the org-wide `renovate.yml`. |
 | `workflow-templates/` | **Starter workflows** shown under *Actions → New workflow* (CI for Astro/Go/Node/Rust, CodeQL, docker-publish, release, scorecard, pr-title, security-scan), each with its `.properties.json`. |
-| `snippets/` | Config files to **copy into** repos: `CODEOWNERS`, `renovate.json`, `dependabot.yml`, `deny.toml`, `typos.toml`, `.gitleaksignore`, `.trivyignore`. Not inherited — these are templates to drop in. |
+| `snippets/` | Config files to **copy into** repos: `CODEOWNERS`, `renovate.json`, `dependabot.yml`, `deny.toml`, `typos.toml`, `.gitleaksignore`, `.trivyignore`. Not inherited; these are templates to drop in. |
 | `default.json` / `renovate.json` | Shared **Renovate** config. `default.json` is loaded by `renovate.yml`; `renovate.json` is the org-wide preset. |
 | `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md` | Community health files inherited org-wide. |
 | `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md` | Default issue and PR templates inherited by repos without their own. |
