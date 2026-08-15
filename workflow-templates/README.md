@@ -44,3 +44,5 @@ Hosting the reusables in the **public** `.github` repo (rather than the private 
 | `security-scan` | `GITLEAKS_LICENSE` | Required for orgs with >25 contributors |
 | `release` | `FERRLABS_BOT_*` (FerrFlow OIDC) | Configured org-wide |
 | `docker-publish` | `GITHUB_TOKEN` | Auto-provided |
+
+<!-- probe -->
