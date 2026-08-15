@@ -10,7 +10,16 @@ permissions:
 jobs:
   conventional:
     name: Conventional commits
-    runs-on: ferrlabs-k8s
+    # Un push sur la branche de la PR ne peut pas changer son titre : revalider
+    # sur `synchronize` recalcule la même réponse, et Renovate rebase en
+    # permanence.
+    #
+    # On saute le job au lieu de retirer `synchronize` du déclencheur, et c'est
+    # délibéré : le workflow continue de produire un check run sur le nouveau
+    # SHA de tête, ce dont un status check requis a besoin, et un job sauté
+    # n'occupe aucun runner.
+    if: github.event.action != 'synchronize'
+    runs-on: ferrlabs-k8s-light
     steps:
       - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6
         env:
