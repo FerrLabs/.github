@@ -57,7 +57,7 @@ on:
         required: false
         default: true
       cache:
-        description: 'Reuse a registry-side layer cache at `<image-name>-buildcache`. The ARC runners mount their container store on an emptyDir, so the local `--layers` cache dies with the pod and every build recompiles from scratch; keeping the cache in the registry is what makes it survive. A missing cache repo is a silent miss, so the first build just populates it. Set false for images whose layers are not worth caching.'
+        description: 'Reuse a registry-side layer cache at `<image-name>-buildcache`. The ARC runners mount their container store on an emptyDir, so the local `--layers` cache dies with the pod and every build recompiles from scratch; keeping the cache in the registry is what makes it survive. A missing cache repo is a silent miss, so the first build just populates it, and a denied cache export degrades to an uncached build with a warning rather than failing the job. Set false for images whose layers are not worth caching.'
         type: boolean
         required: false
         default: true
@@ -246,23 +246,46 @@ jobs:
           # A missing cache repo is a silent miss (verified with buildah
           # 1.33.7), so the first build simply populates it.
           cache_args=()
+          cache_to_args=()
           if [ "$CACHE" = "true" ] && [ "${IMAGE#ghcr.io/}" != "$IMAGE" ]; then
             CACHE_REPO="${IMAGE}-buildcache"
             cache_args+=(--cache-from "$CACHE_REPO" --cache-ttl "$CACHE_TTL")
             # Only publish the cache when we are publishing the image itself:
             # a build that is not pushed (smoke-test-only) must not overwrite
             # the cache other builds depend on.
-            [ "$PUSH" = "true" ] && cache_args+=(--cache-to "$CACHE_REPO")
+            [ "$PUSH" = "true" ] && cache_to_args+=(--cache-to "$CACHE_REPO")
             echo "Layer cache: $CACHE_REPO (ttl $CACHE_TTL, publish=$PUSH)"
           fi
 
-          buildah build \
-            --isolation=chroot --layers \
-            --platform "$PLATFORMS" \
-            "${cache_args[@]}" \
-            "${secret_args[@]}" "${build_arg_args[@]}" \
-            --manifest "$IMAGE:$TAG" \
-            -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
+          run_build() {
+            buildah build \
+              --isolation=chroot --layers \
+              --platform "$PLATFORMS" \
+              "$@" \
+              "${secret_args[@]}" "${build_arg_args[@]}" \
+              --manifest "$IMAGE:$TAG" \
+              -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
+          }
+
+          # A denied cache export must not fail a build whose image is fine.
+          # The first build of a new image creates its `-buildcache` package,
+          # and a package a workflow just created is not linked to the
+          # repository, so GITHUB_TOKEN has no write access and the export
+          # 403s once. Missing cache is already a silent miss; unwritable
+          # cache is the same class of event and costs a slower build, not a
+          # broken one. Every image added from now on hits this wall once.
+          #
+          # The retry reuses the layers the first attempt already committed to
+          # the local store, so it is a cache-hit pass rather than a rebuild.
+          build_log="$RUNNER_TEMP/buildah-build.log"
+          if run_build "${cache_args[@]}" "${cache_to_args[@]}" 2>&1 | tee "$build_log"; then
+            :
+          elif [ ${#cache_to_args[@]} -gt 0 ] && grep -qi 'pushing cache' "$build_log"; then
+            echo "::warning::layer cache export to ${CACHE_REPO} was denied; rebuilding without --cache-to. Link that GHCR package to this repository with write access to restore caching."
+            run_build "${cache_args[@]}"
+          else
+            exit 1
+          fi
 
           rm -f "$RUNNER_TEMP/packages-read" "$RUNNER_TEMP/cargo-registry-token" "$RUNNER_TEMP/gha-cache-url" "$RUNNER_TEMP/gha-runtime-token"
 
