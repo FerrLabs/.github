@@ -1,0 +1,75 @@
+name: Reusable — PR title (Conventional Commits)
+
+# Le titre de la PR devient le message de commit sur `main` au squash-merge, et
+# FerrFlow en déduit le bump de version. Un titre mal formé produit donc
+# silencieusement une mauvaise version, ou aucune. D'où la validation.
+#
+# Les appelants déclarent :
+#
+#   on:
+#     pull_request_target: # zizmor: ignore[dangerous-triggers]
+#       types: [opened, edited, reopened, synchronize]
+#
+#   jobs:
+#     title:
+#       name: PR title
+#       uses: FerrLabs/.github/.github/workflows/reusable-pr-title.yml@<sha>
+#
+# Le check produit s'appelle alors `PR title / Conventional commits` : un job
+# `uses:` compose toujours le nom de l'appelant et celui du job appelé. C'est ce
+# nom-là que les rulesets doivent exiger, pas `Conventional commits` seul.
+#
+# `pull_request_target` est délibéré et sûr : le job ne fait aucun `checkout`,
+# n'exécute donc rien qui vienne de la PR, et ne lit que le titre dans la charge
+# utile de l'événement avec `pull-requests: read`. C'est aussi ce qui empêche une
+# PR de fork d'affaiblir sa propre validation en modifiant le fichier, ce que
+# `pull_request` autoriserait.
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Runner label. Public repos must pass a GitHub-hosted runner — the ferrlabs-k8s group sets allows_public_repositories=false.'
+        type: string
+        required: false
+        default: 'ferrlabs-k8s-light'
+
+permissions: {}
+
+jobs:
+  conventional:
+    name: Conventional commits
+    # Un push sur la branche de la PR ne peut pas changer son titre : revalider
+    # sur `synchronize` recalcule la même réponse, et Renovate rebase en
+    # permanence. Une seule branche a représenté 24 des 100 derniers runs de ce
+    # workflow sur FerrGrowth-Cloud.
+    #
+    # On saute le job au lieu de retirer `synchronize` du déclencheur, et c'est
+    # délibéré : le workflow continue de produire un check run sur le nouveau
+    # SHA de tête, ce dont un status check requis a besoin, et un job sauté
+    # n'occupe aucun runner. Vérifié : le SHA porte alors
+    # `status=completed conclusion=skipped`.
+    if: github.event.action != 'synchronize'
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            refactor
+            docs
+            chore
+            style
+            test
+            perf
+            ci
+            build
+          requireScope: false
+          subjectPattern: ^[A-Za-z].+$
+          subjectPatternError: |
+            Subject "{subject}" must start with an uppercase or lowercase letter and not be empty.
