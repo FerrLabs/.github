@@ -1,0 +1,64 @@
+name: Lint
+
+# The reusables in this repository are shell scripts wearing YAML. A syntax
+# error in one of them is not caught by anything here — it surfaces in whichever
+# product repository next bumps its pin, as a job that dies before its first
+# line runs. That is how a stray `if` shipped org-wide and every image build
+# using it failed identically.
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    name: Workflow scripts parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - run: pip install --quiet pyyaml
+
+      - name: bash -n every run block
+        run: |
+          python3 - <<'PY'
+          import pathlib, re, subprocess, sys, tempfile, yaml
+
+          def scripts(workflow):
+              for name, job in (workflow.get("jobs") or {}).items():
+                  default = ((job.get("defaults") or {}).get("run") or {}).get("shell")
+                  for index, step in enumerate(job.get("steps") or []):
+                      run = step.get("run")
+                      shell = step.get("shell", default)
+                      if run and shell in (None, "bash", "sh", "bash -e {0}"):
+                          yield name, index, step.get("name", f"step {index}"), run
+
+          failed = 0
+          for path in sorted(pathlib.Path(".github/workflows").glob("*.yml")):
+              loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+              for job, index, label, run in scripts(loaded):
+                  # An expression can expand to anything, including nothing, so
+                  # substitute a placeholder rather than guess: this checks the
+                  # shape of the script, not the values it will be given.
+                  source = re.sub(r"\$\{\{.*?\}\}", "EXPRESSION", run, flags=re.S)
+                  with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False, encoding="utf-8") as handle:
+                      handle.write(source)
+                      probe = handle.name
+                  check = subprocess.run(["bash", "-n", probe], capture_output=True, text=True)
+                  if check.returncode:
+                      failed += 1
+                      print(f"::error file={path}::{job} / {label}: {check.stderr.strip()}")
+
+          print("no unparseable run blocks" if not failed else f"{failed} unparseable run block(s)")
+          sys.exit(1 if failed else 0)
+          PY
