@@ -10,10 +10,20 @@ name: Reusable — PR title (Conventional Commits)
 #     pull_request_target: # zizmor: ignore[dangerous-triggers]
 #       types: [opened, edited, reopened, synchronize]
 #
+#   permissions:
+#     pull-requests: read
+#
 #   jobs:
 #     title:
 #       name: PR title
 #       uses: FerrLabs/.github/.github/workflows/reusable-pr-title.yml@<sha>
+#
+# Le bloc `permissions` de l'appelant n'est pas facultatif : un workflow appelé
+# ne peut que restreindre ce que l'appelant lui donne, jamais l'élargir. Sans
+# lui, le run finit en `startup_failure` avec « is requesting 'pull-requests:
+# read', but is only allowed 'pull-requests: none' », et un startup_failure ne
+# produit AUCUN check run sur le SHA de tête. Sur un dépôt où ce check est
+# requis, c'est un blocage silencieux de toutes les PR.
 #
 # Le check produit s'appelle alors `PR title / Conventional commits` : un job
 # `uses:` compose toujours le nom de l'appelant et celui du job appelé. C'est ce
