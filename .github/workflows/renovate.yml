@@ -270,6 +270,16 @@ jobs:
           # (CrateDatasource.id) — `cargo` is the manager and matches nothing,
           # so the Kellnr rule silently contributed no token and the sparse
           # index answered 401, surfacing as the same `no-result` as above.
+          #
+          # The `docker` hostRules cover image lookups (the `tags/list` API, not
+          # a pull). Without them Renovate queries anonymously and shares the
+          # per-IP quota of a GitHub-hosted runner with everyone else on it, so
+          # lookups intermittently answer 429 TOOMANYREQUESTS and degrade to
+          # `no-result`, silently skipping the update. lscr.io is a GHCR front
+          # for linuxserver images and authenticates the same way. This is
+          # unrelated to the cluster's pull-through caches: those are wired into
+          # containerd via /etc/containerd/certs.d and only serve node-side
+          # image pulls, never metadata lookups from a hosted runner.
           RENOVATE_HOST_RULES: |
             [
               {
@@ -291,5 +301,15 @@ jobs:
                 "matchHost": "crates.ferrlabs.com",
                 "hostType": "crate",
                 "token": "${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}"
+              },
+              {
+                "matchHost": "ghcr.io",
+                "hostType": "docker",
+                "token": "${{ secrets.GITHUB_TOKEN }}"
+              },
+              {
+                "matchHost": "lscr.io",
+                "hostType": "docker",
+                "token": "${{ secrets.GITHUB_TOKEN }}"
               }
             ]
