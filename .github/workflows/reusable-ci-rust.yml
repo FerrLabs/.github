@@ -445,7 +445,7 @@ jobs:
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: crate-ci/typos@26e1ab0f398ee2139416a695ba2f7497533e6909 # master
+      - uses: crate-ci/typos@5e38bf262baaf477ca9f241b3a7cd3d277fd7df8 # master
         with:
           files: ${{ inputs.working-directory }}
 
