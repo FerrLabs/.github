@@ -225,12 +225,16 @@ jobs:
         if: inputs.check-clippy
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
-        run: cargo clippy --locked ${{ inputs.cargo-flags }} -- ${{ inputs.clippy-args }}
+          CARGO_FLAGS: ${{ inputs.cargo-flags }}
+          CLIPPY_ARGS: ${{ inputs.clippy-args }}
+        run: cargo clippy --locked $CARGO_FLAGS -- $CLIPPY_ARGS
       - name: Tests
         if: inputs.run-tests
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
-        run: cargo test --locked ${{ inputs.cargo-flags }} ${{ inputs.test-args }}
+          CARGO_FLAGS: ${{ inputs.cargo-flags }}
+          TEST_ARGS: ${{ inputs.test-args }}
+        run: cargo test --locked $CARGO_FLAGS $TEST_ARGS
 
   # DB-backed integration tests. Postgres is provided out-of-band by the shared
   # `postgres-ci` pod (ns github-runner) instead of being apt-installed inside
@@ -424,7 +428,9 @@ jobs:
           fi
       - name: cargo deny
         if: inputs.enable-deny
-        run: cargo deny ${{ inputs.cargo-flags }} check
+        env:
+          CARGO_FLAGS: ${{ inputs.cargo-flags }}
+        run: cargo deny $CARGO_FLAGS check
       - name: cargo machete (unused deps)
         if: inputs.enable-machete
         run: |
@@ -513,7 +519,8 @@ jobs:
         if: inputs.coverage-tool == 'llvm-cov'
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
-        run: cargo llvm-cov --locked ${{ inputs.coverage-flags || inputs.cargo-flags }} --workspace --lcov --output-path lcov.info
+          COVERAGE_FLAGS: ${{ inputs.coverage-flags || inputs.cargo-flags }}
+        run: cargo llvm-cov --locked $COVERAGE_FLAGS --workspace --lcov --output-path lcov.info
       - name: Generate coverage (tarpaulin)
         if: inputs.coverage-tool == 'tarpaulin'
         env:
