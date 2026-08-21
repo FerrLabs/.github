@@ -225,12 +225,12 @@ jobs:
         if: inputs.check-clippy
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
-        run: cargo clippy ${{ inputs.cargo-flags }} -- ${{ inputs.clippy-args }}
+        run: cargo clippy --locked ${{ inputs.cargo-flags }} -- ${{ inputs.clippy-args }}
       - name: Tests
         if: inputs.run-tests
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
-        run: cargo test ${{ inputs.cargo-flags }} ${{ inputs.test-args }}
+        run: cargo test --locked ${{ inputs.cargo-flags }} ${{ inputs.test-args }}
 
   # DB-backed integration tests. Postgres is provided out-of-band by the shared
   # `postgres-ci` pod (ns github-runner) instead of being apt-installed inside
@@ -314,7 +314,7 @@ jobs:
       - name: Pre-compile integration test binaries
         env:
           INTEGRATION_ARGS: ${{ inputs.integration-args }}
-        run: cargo test --no-run ${INTEGRATION_ARGS%% -- *}
+        run: cargo test --locked --no-run ${INTEGRATION_ARGS%% -- *}
       - name: Create per-run database
         env:
           DB_ENV_NAME: ${{ inputs.integration-db-env }}
@@ -343,7 +343,7 @@ jobs:
           set -uo pipefail
           for attempt in 1 2 3; do
             echo "::group::Integration attempt ${attempt}/3"
-            if cargo test $INTEGRATION_ARGS; then echo "::endgroup::"; exit 0; fi
+            if cargo test --locked $INTEGRATION_ARGS; then echo "::endgroup::"; exit 0; fi
             echo "::endgroup::"
             sleep 5
           done
@@ -513,13 +513,13 @@ jobs:
         if: inputs.coverage-tool == 'llvm-cov'
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
-        run: cargo llvm-cov ${{ inputs.coverage-flags || inputs.cargo-flags }} --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov --locked ${{ inputs.coverage-flags || inputs.cargo-flags }} --workspace --lcov --output-path lcov.info
       - name: Generate coverage (tarpaulin)
         if: inputs.coverage-tool == 'tarpaulin'
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
         run: |
-          cargo install cargo-tarpaulin
+          cargo install --locked cargo-tarpaulin
           cargo tarpaulin --out xml --skip-clean
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:

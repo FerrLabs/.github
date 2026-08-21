@@ -27,6 +27,14 @@ confidence-threshold = 0.93
 multiple-versions = "warn"
 wildcards = "deny"
 highlight = "all"
+deny = [
+  { crate = "proc-macro1", reason = "Malicious crate from the 2026-08-20 arrayref supply-chain attack." },
+  { crate = "proc-macro-en", reason = "Malicious crate from the 2026-08-20 arrayref supply-chain attack." },
+  { crate = "aovine", reason = "Malicious crate from the 2026-08-20 arrayref supply-chain attack." },
+  { crate = "arone", reason = "Malicious crate from the 2026-08-20 arrayref supply-chain attack." },
+  { crate = "aronenao", reason = "Malicious crate from the 2026-08-20 arrayref supply-chain attack." },
+  { crate = "tinymember", reason = "Malicious crate from the 2026-08-20 arrayref supply-chain attack." },
+]
 
 [sources]
 unknown-registry = "deny"
