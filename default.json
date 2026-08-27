@@ -149,9 +149,9 @@
       "groupName": "GitHub Actions"
     },
     {
-      "description": "Actions et workflows réutilisables maison — pas de délai, pas d'attente du lundi. La règle précédente fait patienter 3 jours parce que les auteurs tiers re-taguent après publication ; sur nos propres dépôts ce risque n'existe pas, on contrôle le contenu et le SHA. Sans cette exception, un changement dans FerrLabs/.github met jusqu'à quatre jours à atteindre les dépôts consommateurs (schedule lundi + 3 jours d'âge), ce qui bloque toute bascule coordonnée. `FerrLabs/.github` est nommé explicitement : un glob minimatch n'attrape pas un segment commençant par un point.",
+      "description": "FerrLabs/.github reusable workflows: no delay, no waiting for Monday. The previous rule waits 3 days because third-party authors re-tag after publishing; that risk does not exist on our own repositories, where we control both the content and the SHA. Without this exception a change in FerrLabs/.github takes up to four days to reach consumers (Monday schedule plus 3 days of age), which blocks any coordinated switchover. `FerrLabs/.github` is named explicitly because a minimatch glob does not match a segment starting with a dot.",
       "matchManagers": ["github-actions"],
-      "matchPackageNames": ["FerrLabs/.github", "FerrLabs/**"],
+      "matchPackageNames": ["FerrLabs/.github"],
       "schedule": ["at any time"],
       "minimumReleaseAge": "0",
       "internalChecksFilter": "none",
@@ -159,6 +159,18 @@
       "automergeType": "pr",
       "automergeStrategy": "squash",
       "groupName": "FerrLabs actions"
+    },
+    {
+      "description": "Every other FerrLabs action, the ferrflow action above all: grouped and taken weekly. These do not need to arrive within the hour, and taking each release the moment it landed was the main source of digest churn. Every commit here changes this repository's digest, 26 repositories pin that digest, so one release fanned out into as many pull requests. In the week before this rule, 12 of the 16 commits here were ferrflow action bumps. Consumers of FerrLabs/.github itself keep the immediate cadence above, which is what that exception exists for.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["FerrLabs/**", "!FerrLabs/.github"],
+      "schedule": ["before 6am on monday"],
+      "minimumReleaseAge": "0",
+      "internalChecksFilter": "none",
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "groupName": "FerrLabs actions (weekly)"
     },
     {
       "description": "Dockerfile base images — wait 3 days, grouped + auto-merge weekly",
