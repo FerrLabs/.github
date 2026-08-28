@@ -39,10 +39,10 @@ on:
   workflow_call:
     inputs:
       runner:
-        description: 'Runner label. Public repos must pass a GitHub-hosted runner — the ferrlabs-k8s group sets allows_public_repositories=false.'
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use ferrlabs-k8s-light, public repos use ubuntu-latest. The ferrlabs-k8s group sets allows_public_repositories=false, so a public repo pinned to it queues forever.'
         type: string
         required: false
-        default: 'ferrlabs-k8s-light'
+        default: ''
 
 permissions:
   pull-requests: read
@@ -61,7 +61,7 @@ jobs:
     # n'occupe aucun runner. Vérifié : le SHA porte alors
     # `status=completed conclusion=skipped`.
     if: github.event.action != 'synchronize'
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     steps:
       - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6
         env:
