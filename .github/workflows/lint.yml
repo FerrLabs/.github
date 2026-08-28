@@ -8,8 +8,6 @@ name: Lint
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/**'
   push:
     branches: [main]
     paths:
