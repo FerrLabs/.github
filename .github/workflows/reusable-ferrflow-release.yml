@@ -115,7 +115,7 @@ jobs:
     name: Trigger Renovate scan on consumers
     needs: release
     if: ${{ inputs.trigger-renovate && github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release):') }}
-    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     steps:
       - name: Dispatch Renovate workflow
         env:

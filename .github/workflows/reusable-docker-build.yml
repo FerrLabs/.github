@@ -142,7 +142,7 @@ jobs:
     # hadolint via its static binary (not the hadolint-action Docker container)
     # so it runs on the self-hosted pool for private repos — the ARC runners
     # have buildah but no Docker daemon. Public repos fall back to ubuntu-latest.
-    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -408,7 +408,7 @@ jobs:
     # self-hosted pool for private repos. Public repos fall back to ubuntu-latest.
     # Keyless signing uses the Actions OIDC token, which is available on
     # self-hosted runners too (needs id-token: write, already granted).
-    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     steps:
       - name: Install cosign
         run: |
