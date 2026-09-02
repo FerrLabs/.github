@@ -62,10 +62,10 @@ on:
         required: false
         default: true
       cache-ttl:
-        description: 'Ignore cached layers older than this (buildah --cache-ttl, e.g. 168h). Bounds how long a stale base image can be reused before a rebuild picks up upstream security updates.'
+        description: 'Ignore cached layers older than this (buildah --cache-ttl, e.g. 24h). Bounds how long an image can keep shipping OS packages that upstream has already patched: a `RUN apk upgrade` layer is only rerun once its cache entry expires, so this is what decides how stale a security update can get. Raise it for an image whose layers are expensive and whose base carries no OS surface.'
         type: string
         required: false
-        default: '168h'
+        default: '24h'
       push-retries:
         description: 'How many times to retry each manifest push if the registry returns a transient error (5xx, network reset). Backoff is 10s, 30s, 90s, … capped at 5 min. Set to 1 to disable retries.'
         type: number
