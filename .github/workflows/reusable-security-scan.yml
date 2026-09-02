@@ -214,14 +214,19 @@ jobs:
         env:
           SAST_CONFIG: ${{ inputs.sast-config }}
         run: |
+          set -euo pipefail
           if [ -n "$SAST_CONFIG" ]; then
             echo "path=$SAST_CONFIG" >> "$GITHUB_OUTPUT"
-          else
-            # OpenGrep bundles no rules; the Semgrep registry `auto` shorthand is
-            # not reliably available on the fork, so we ship the community set.
-            git clone --depth 1 https://github.com/opengrep/opengrep-rules.git "$RUNNER_TEMP/opengrep-rules"
-            echo "path=$RUNNER_TEMP/opengrep-rules" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # OpenGrep bundles no rules; the Semgrep registry `auto` shorthand is
+          # not reliably available on the fork, so we ship the community set.
+          DEST="$RUNNER_TEMP/opengrep-rules"
+          mkdir -p "$DEST"
+          TARBALL="$RUNNER_TEMP/opengrep-rules.tar.gz"
+          curl -fsSL -o "$TARBALL" https://codeload.github.com/opengrep/opengrep-rules/tar.gz/refs/heads/main
+          tar -xzf "$TARBALL" -C "$DEST" --strip-components=1
+          echo "path=$DEST" >> "$GITHUB_OUTPUT"
       - name: Fetch the FerrLabs ruleset
         id: ferrlabs-rules
         if: ${{ inputs.ferrlabs-rules }}
