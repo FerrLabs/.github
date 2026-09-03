@@ -422,7 +422,7 @@ jobs:
         run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
       - name: Cache the RustSec advisory database
         if: inputs.enable-deny
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cargo/advisory-dbs
           key: advisory-db-${{ steps.advisory-db-key.outputs.day }}
@@ -446,10 +446,15 @@ jobs:
           if [ "$EXIT" != "0" ]; then
             echo "::warning::cargo audit found advisories (non-blocking — set fail-on-audit: true or update audit-ignore to act on them)"
           fi
-      # Fetching is split out from the check so the network step can be retried
-      # on its own, and so the check itself runs `--offline` and cannot reach
-      # for the database again halfway through. `cargo deny check` re-fetches
-      # even when the cache is warm, which is the call that gets rate limited.
+      # Fetching is split out so the one network-bound step can be retried on
+      # its own, rather than retrying a check that may be failing for a real
+      # reason. Combined with the cache above this turns the rate-limited call
+      # from a fresh clone into an incremental fetch.
+      #
+      # Not `--offline` on the check: that flag applies to the whole crate
+      # graph, not just the advisory database, so on a runner with a cold
+      # registry `cargo metadata` fails with "no matching package named
+      # `anyhow` found". It passes locally only because the registry is warm.
       - name: cargo deny
         if: inputs.enable-deny
         env:
@@ -466,7 +471,7 @@ jobs:
             echo "advisory database fetch failed (attempt $attempt), retrying"
             sleep $((attempt * 15))
           done
-          cargo deny --offline $DENY_FLAGS check
+          cargo deny $DENY_FLAGS check
       - name: cargo machete (unused deps)
         if: inputs.enable-machete
         run: |
