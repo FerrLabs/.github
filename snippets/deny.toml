@@ -30,6 +30,9 @@ confidence-threshold = 0.93
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# Intra-workspace `path` dependencies carry no version and read as wildcards
+# to cargo-deny. They are local crates, not unpinned registry dependencies.
+allow-wildcard-paths = true
 highlight = "all"
 deny = [
   { crate = "proc-macro1", reason = "Malicious crate from the 2026-08-20 arrayref supply-chain attack." },
