@@ -27,6 +27,10 @@ on:
         description: 'Flags appended to cargo invocations (clippy, test, build)'
         type: string
         default: '--all-features'
+      deny-flags:
+        description: 'Flags passed to cargo deny. Separate from cargo-flags because cargo-deny has its own CLI and rejects things like --all-targets. Feature selection normally belongs in deny.toml [graph] instead.'
+        type: string
+        default: ''
       coverage-flags:
         description: 'Flags for the coverage run (llvm-cov). Defaults to cargo-flags. Set separately when cargo-flags already carries --workspace, to avoid passing it twice to llvm-cov which rejects duplicates.'
         type: string
@@ -429,8 +433,8 @@ jobs:
       - name: cargo deny
         if: inputs.enable-deny
         env:
-          CARGO_FLAGS: ${{ inputs.cargo-flags }}
-        run: cargo deny $CARGO_FLAGS check
+          DENY_FLAGS: ${{ inputs.deny-flags }}
+        run: cargo deny $DENY_FLAGS check
       - name: cargo machete (unused deps)
         if: inputs.enable-machete
         run: |
