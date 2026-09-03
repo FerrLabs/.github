@@ -366,6 +366,55 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # The scan below emits SARIF, which is a file, and the Security tab that
+      # would render it needs Advanced Security. A private repo without that
+      # licence gets a no-op upload, so a failed scan blocked the build on a
+      # list nobody could open. This run prints the same findings as a table
+      # and puts them on the run page, next to the failure.
+      #
+      # Separate from the gate on purpose: it must produce its report even when
+      # the gate is about to exit 1, so it runs first and never fails the job.
+      # The Trivy DB is cached within the job, so this is a few seconds.
+      - name: Trivy (report)
+        id: report
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        continue-on-error: true
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ${{ inputs.image-name }}:${{ inputs.tag }}
+          format: table
+          output: trivy-report.txt
+          severity: ${{ inputs.trivy-severity }}
+          ignore-unfixed: true
+          exit-code: '0'
+      - name: Publish the CVE list
+        if: always()
+        env:
+          IMAGE: ${{ inputs.image-name }}:${{ inputs.tag }}
+          SEVERITY: ${{ inputs.trivy-severity }}
+          OUTCOME: ${{ steps.report.outcome }}
+        run: |
+          set -euo pipefail
+          # An empty report means "nothing found" only when the scan actually
+          # ran. Without the outcome check, a report step that died before
+          # writing the file would render as "no vulnerabilities", which is the
+          # unreadable run page this step exists to prevent, one square over.
+          {
+            echo "### Trivy: ${SEVERITY} in ${IMAGE}"
+            echo
+            echo '```'
+            if [ "${OUTCOME}" != "success" ]; then
+              echo "The scan did not complete (outcome: ${OUTCOME}). See the Trivy (report) step above."
+              echo "This says nothing about whether the image is clean."
+            elif [ -s trivy-report.txt ]; then
+              cat trivy-report.txt
+            else
+              echo "No ${SEVERITY} vulnerabilities with a published fix."
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         # Authenticate the Trivy DB pull from ghcr.io/aquasecurity/trivy-db.
         # trivy-action already caches the DB (keyed by date), but on the first
