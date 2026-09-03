@@ -411,6 +411,22 @@ jobs:
       - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
         with:
           tool: cargo-audit,cargo-deny,cargo-machete
+      # cargo-deny clones the RustSec database unauthenticated, and GitHub rate
+      # limits that. Our ARC runners share an egress IP, so every Rust job in
+      # the org draws on the same anonymous quota from one address. Keyed on the
+      # day: the database moves often enough that a stale one is worth less than
+      # a daily refresh, and often enough that a week-old cache would be wrong.
+      - name: Advisory database cache key
+        if: inputs.enable-deny
+        id: advisory-db-key
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - name: Cache the RustSec advisory database
+        if: inputs.enable-deny
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cargo/advisory-dbs
+          key: advisory-db-${{ steps.advisory-db-key.outputs.day }}
+          restore-keys: advisory-db-
       - name: cargo audit (RustSec advisories)
         if: inputs.enable-audit
         run: |
@@ -430,11 +446,32 @@ jobs:
           if [ "$EXIT" != "0" ]; then
             echo "::warning::cargo audit found advisories (non-blocking — set fail-on-audit: true or update audit-ignore to act on them)"
           fi
+      # Fetching is split out so the one network-bound step can be retried on
+      # its own, rather than retrying a check that may be failing for a real
+      # reason. Combined with the cache above this turns the rate-limited call
+      # from a fresh clone into an incremental fetch.
+      #
+      # Not `--offline` on the check: that flag applies to the whole crate
+      # graph, not just the advisory database, so on a runner with a cold
+      # registry `cargo metadata` fails with "no matching package named
+      # `anyhow` found". It passes locally only because the registry is warm.
       - name: cargo deny
         if: inputs.enable-deny
         env:
           DENY_FLAGS: ${{ inputs.deny-flags }}
-        run: cargo deny $DENY_FLAGS check
+        run: |
+          for attempt in 1 2 3; do
+            if cargo deny fetch db; then
+              break
+            fi
+            if [ "$attempt" = "3" ]; then
+              echo "::error::could not fetch the RustSec advisory database after 3 attempts"
+              exit 1
+            fi
+            echo "advisory database fetch failed (attempt $attempt), retrying"
+            sleep $((attempt * 15))
+          done
+          cargo deny $DENY_FLAGS check
       - name: cargo machete (unused deps)
         if: inputs.enable-machete
         run: |
