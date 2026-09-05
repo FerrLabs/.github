@@ -51,6 +51,12 @@ on:
       FERRLABS_DISPATCH_TOKEN:
         required: false
 
+concurrency:
+  group: reusable-ferrflow-release-${{ github.workflow }}-${{ github.ref }}
+  # Queue rather than cancel. Interrupting a release can leave a tag
+  # pushed with nothing published against it.
+  cancel-in-progress: false
+
 permissions:
   contents: write
   id-token: write
