@@ -44,6 +44,14 @@ on:
         required: false
         default: ''
 
+concurrency:
+  group: reusable-pr-title-${{ github.workflow }}-${{ github.ref }}
+  # Callers trigger on `pull_request_target`, so testing for
+  # `pull_request` alone would never cancel anything.
+  cancel-in-progress: >-
+    ${{ github.event_name == 'pull_request_target'
+    || github.event_name == 'pull_request' }}
+
 permissions:
   pull-requests: read
 
