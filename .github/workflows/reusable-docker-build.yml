@@ -129,6 +129,12 @@ on:
         description: 'garage S3 secret key (SCCACHE_S3_SECRET). Pair of sccache-s3-key; both must be set for the cache to be wired in.'
         required: false
 
+concurrency:
+  group: reusable-docker-build-${{ inputs.image-name }}-${{ github.workflow }}-${{ github.ref }}
+  # Never cancel on a tag: the release that produced it is already out,
+  # so that build has to complete.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 permissions:
   contents: read
   packages: write

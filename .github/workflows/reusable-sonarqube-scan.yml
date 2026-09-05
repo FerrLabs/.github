@@ -47,6 +47,12 @@ on:
       SONAR_TOKEN:
         required: true
 
+concurrency:
+  group: reusable-sonarqube-scan-${{ inputs.project-key }}-${{ inputs.working-directory }}-${{ github.workflow }}-${{ github.ref }}
+  # Never cancel on a tag: the release that produced it is already out,
+  # so that build has to complete.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 permissions:
   contents: read
   pull-requests: write

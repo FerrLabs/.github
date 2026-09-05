@@ -96,6 +96,12 @@ on:
       SONAR_TOKEN:
         required: false
 
+concurrency:
+  group: reusable-ci-astro-${{ inputs.working-directory }}-${{ github.workflow }}-${{ github.ref }}
+  # Never cancel on a tag: the release that produced it is already out,
+  # so that build has to complete.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 permissions:
   contents: read
   # Lecture du registre npm de GitHub (`npm.pkg.github.com`), où vivent les

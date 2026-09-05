@@ -157,6 +157,12 @@ on:
       CARGO_REGISTRIES_KELLNR_TOKEN:
         required: false
 
+concurrency:
+  group: reusable-ci-rust-${{ inputs.working-directory }}-${{ github.workflow }}-${{ github.ref }}
+  # Never cancel on a tag: the release that produced it is already out,
+  # so that build has to complete.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 permissions:
   contents: read
 
