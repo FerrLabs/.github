@@ -265,16 +265,6 @@ jobs:
     if: inputs.enable-sonar && !cancelled()
     # needs: test so the coverage artifact exists before the scan downloads it.
     needs: test
-    # Le job qui commente le delta sur une PR a besoin d'ecrire dessus, et un
-    # workflow appele ne peut pas obtenir plus que ce que son appelant lui
-    # accorde : sans cette ligne, ce workflow plafonne a `contents: read` et
-    # l'appel imbrique a reusable-sonarqube-scan, qui demande
-    # `pull-requests: write`, fait echouer le run entier au demarrage --
-    # startup_failure, sans job ni message exploitable. Pose au niveau job et
-    # non du workflow : seul ce job obtient l'ecriture, les jobs de build
-    # restent en lecture seule.
-    # L'appelant doit accorder la meme permission sur le job qui appelle ce
-    # workflow, sinon il n'y a rien a transmettre.
     permissions:
       contents: read
       pull-requests: write
