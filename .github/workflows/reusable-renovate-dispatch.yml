@@ -28,9 +28,9 @@ on:
 
 concurrency:
   group: reusable-renovate-dispatch-${{ github.workflow }}-${{ github.ref }}
-  # Never cancel on a tag: the release that produced it is already out,
-  # so that build has to complete.
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  # An idempotent dispatch that publishes nothing, so superseding an
+  # in-flight run is safe on any ref, tags included.
+  cancel-in-progress: true
 
 permissions: {}
 
