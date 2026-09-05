@@ -53,9 +53,11 @@ on:
 
 concurrency:
   group: reusable-ferrflow-release-${{ github.workflow }}-${{ github.ref }}
-  # Queue rather than cancel. Interrupting a release can leave a tag
-  # pushed with nothing published against it.
-  cancel-in-progress: false
+  # Collapse rather than queue. Callers invoke this on pushes to main, so
+  # queueing turns three merges in a row into three releases; cancelling
+  # lets the last run cover every commit that landed, in one version.
+  # Never on a tag: that release is already out and its build has to finish.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: write
