@@ -78,19 +78,7 @@ jobs:
       #     doesn't hold up the rest),
       #   - grouped shards for tools / libs / infra / games,
       #   - a `rest` catch-all owning every other non-archived repo.
-      # Shards are mutually exclusive: un dépôt tombe dans exactement un.
-      #
-      # ⚠️ `rest` n'a jamais rien attrapé jusqu'au 2026-08-09 : le filtre
-      # s'écrivait `$named | index(.)`, où le `.` dans `index()` désigne
-      # l'entrée du pipe — c'est-à-dire `$named` lui-même, pas le dépôt
-      # courant. `$named | index($named)` vaut 0, donc `| not` valait false
-      # pour TOUT dépôt et `$rest` sortait toujours vide, sans erreur ni
-      # shard visible. Six dépôts n'ont donc jamais été scannés, dont
-      # FerrGames-Discord — qui consomme ce reusable de release.
-      #
-      # La forme `. as $n | $named | index($n)` capture la valeur courante
-      # avant le pipe. Si un shard `rest` apparaît dans un run, c'est normal :
-      # c'est ce qui manquait.
+      # Shards are mutually exclusive.
       - name: Compute shard matrix
         id: plan
         env:

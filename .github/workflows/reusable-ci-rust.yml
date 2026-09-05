@@ -257,11 +257,6 @@ jobs:
       PGHOST: ${{ inputs.integration-db-host }}
       PGPORT: ${{ inputs.integration-db-port }}
       PGUSER: ${{ inputs.integration-db-user }}
-    # Ce job parle a postgres-ci.github-runner.svc.cluster.local, un service
-    # INTERNE au cluster de production : il doit rester sur `ferrlabs-k8s` et
-    # ne jamais etre route vers un autre site (le Homelab, par exemple), d'ou
-    # ce service est injoignable -- l'echec serait une resolution DNS, sans
-    # rapport apparent avec la base de donnees.
     runs-on: ${{ inputs.integration-runner != '' && inputs.integration-runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     defaults:
       run:
@@ -619,16 +614,6 @@ jobs:
     # for full reports.
     if: inputs.enable-sonar && !cancelled()
     needs: coverage
-    # Le job qui commente le delta sur une PR a besoin d'ecrire dessus, et un
-    # workflow appele ne peut pas obtenir plus que ce que son appelant lui
-    # accorde : sans cette ligne, ce workflow plafonne a `contents: read` et
-    # l'appel imbrique a reusable-sonarqube-scan, qui demande
-    # `pull-requests: write`, fait echouer le run entier au demarrage --
-    # startup_failure, sans job ni message exploitable. Pose au niveau job et
-    # non du workflow : seul ce job obtient l'ecriture, les jobs de build
-    # restent en lecture seule.
-    # L'appelant doit accorder la meme permission sur le job qui appelle ce
-    # workflow, sinon il n'y a rien a transmettre.
     permissions:
       contents: read
       pull-requests: write

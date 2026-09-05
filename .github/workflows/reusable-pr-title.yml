@@ -1,10 +1,9 @@
 name: Reusable — PR title (Conventional Commits)
 
-# Le titre de la PR devient le message de commit sur `main` au squash-merge, et
-# FerrFlow en déduit le bump de version. Un titre mal formé produit donc
-# silencieusement une mauvaise version, ou aucune. D'où la validation.
-#
-# Les appelants déclarent :
+# Callers declare the block below. `pull_request_target` is safe here
+# because this workflow checks nothing out and reads only the title from
+# the event payload, and the caller's `permissions` block is mandatory:
+# a called workflow can only narrow what the caller grants it.
 #
 #   on:
 #     pull_request_target: # zizmor: ignore[dangerous-triggers]
@@ -17,23 +16,6 @@ name: Reusable — PR title (Conventional Commits)
 #     title:
 #       name: PR title
 #       uses: FerrLabs/.github/.github/workflows/reusable-pr-title.yml@<sha>
-#
-# Le bloc `permissions` de l'appelant n'est pas facultatif : un workflow appelé
-# ne peut que restreindre ce que l'appelant lui donne, jamais l'élargir. Sans
-# lui, le run finit en `startup_failure` avec « is requesting 'pull-requests:
-# read', but is only allowed 'pull-requests: none' », et un startup_failure ne
-# produit AUCUN check run sur le SHA de tête. Sur un dépôt où ce check est
-# requis, c'est un blocage silencieux de toutes les PR.
-#
-# Le check produit s'appelle alors `PR title / Conventional commits` : un job
-# `uses:` compose toujours le nom de l'appelant et celui du job appelé. C'est ce
-# nom-là que les rulesets doivent exiger, pas `Conventional commits` seul.
-#
-# `pull_request_target` est délibéré et sûr : le job ne fait aucun `checkout`,
-# n'exécute donc rien qui vienne de la PR, et ne lit que le titre dans la charge
-# utile de l'événement avec `pull-requests: read`. C'est aussi ce qui empêche une
-# PR de fork d'affaiblir sa propre validation en modifiant le fichier, ce que
-# `pull_request` autoriserait.
 
 on:
   workflow_call:
@@ -61,16 +43,6 @@ permissions:
 jobs:
   conventional:
     name: Conventional commits
-    # Un push sur la branche de la PR ne peut pas changer son titre : revalider
-    # sur `synchronize` recalcule la même réponse, et Renovate rebase en
-    # permanence. Une seule branche a représenté 24 des 100 derniers runs de ce
-    # workflow sur FerrGrowth-Cloud.
-    #
-    # On saute le job au lieu de retirer `synchronize` du déclencheur, et c'est
-    # délibéré : le workflow continue de produire un check run sur le nouveau
-    # SHA de tête, ce dont un status check requis a besoin, et un job sauté
-    # n'occupe aucun runner. Vérifié : le SHA porte alors
-    # `status=completed conclusion=skipped`.
     if: github.event.action != 'synchronize'
     runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     steps:
