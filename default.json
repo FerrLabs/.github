@@ -62,6 +62,25 @@
       "groupName": "FerrLabs npm packages"
     },
     {
+      "description": "FerrFlow npm packages — same trust as the @ferrlabs rule above, minus the registry override. The npm publishes were consolidated under @ferrflow (the `ferrflow` wrapper, `@ferrflow/*`, `@ferrflow/wasm`) and those live on npmjs.org, not GHCR, so pointing them at npm.pkg.github.com would break the lookup. Without this rule the scope falls through to the third-party rule below and its three-day quarantine, which held FerrFlow-Cloud's `@ferrflow/doc` pin four versions behind and kept merged documentation off ferrflow.com.",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "/^@ferrflow\\//",
+        "ferrflow"
+      ],
+      "schedule": [
+        "* * * * *"
+      ],
+      "minimumReleaseAge": "0",
+      "internalChecksFilter": "none",
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "groupName": "FerrFlow npm packages"
+    },
+    {
       "description": "FerrLabs Kit crates pinned via git rev — scan often, merge without delay. Targets the depName the customManager below stamps (`FerrLabs/Kit`); `matchPackageNames` would compare against the packageName field (the full URL), so use matchDepNames here. internalChecksFilter:none skips stability-days.",
       "matchManagers": [
         "custom.regex"
@@ -106,7 +125,9 @@
         "npm"
       ],
       "matchPackageNames": [
-        "!/^@ferrlabs\\//"
+        "!/^@ferrlabs\\//",
+        "!/^@ferrflow\\//",
+        "!ferrflow"
       ],
       "matchUpdateTypes": [
         "patch",
