@@ -45,7 +45,10 @@ on:
         default: ''
 
 concurrency:
-  group: reusable-pr-title-${{ github.workflow }}-${{ github.ref }}
+  # `pull_request_target` runs in the base's context, so `github.ref` is
+  # the base branch and every open PR would share one group. The PR number
+  # keys it per pull request, with `github.ref` left as the fallback.
+  group: reusable-pr-title-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   # Callers trigger on `pull_request_target`, so testing for
   # `pull_request` alone would never cancel anything.
   cancel-in-progress: >-
