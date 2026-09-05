@@ -51,6 +51,16 @@ on:
       FERRLABS_DISPATCH_TOKEN:
         required: false
 
+concurrency:
+  group: reusable-ferrflow-release-${{ github.workflow }}-${{ github.ref }}
+  # Queue rather than cancel, as in reusable-release-rust. The release
+  # commit is pushed without `[skip ci]`, so it starts another run of the
+  # caller workflow; workflow-level concurrency is evaluated before the
+  # job-level `chore(release):` guard, so that run would claim the group,
+  # cancel the release still publishing, then skip all of its own jobs.
+  # Collapsing a burst belongs in the caller's own group.
+  cancel-in-progress: false
+
 permissions:
   contents: write
   id-token: write

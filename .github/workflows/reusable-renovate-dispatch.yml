@@ -26,6 +26,12 @@ on:
         type: string
         default: 'ferrlabs-k8s'
 
+concurrency:
+  group: reusable-renovate-dispatch-${{ github.workflow }}-${{ github.ref }}
+  # An idempotent dispatch that publishes nothing, so superseding an
+  # in-flight run is safe on any ref, tags included.
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
