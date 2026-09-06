@@ -31,6 +31,11 @@ on:
         type: string
         required: false
         default: ''
+      build-ulimits:
+        description: 'Newline-separated resource limits for the processes a RUN instruction launches (buildah --ulimit, e.g. nofile=65536:65536). buildah caps descriptors at 1024 by default, which a cross toolchain that spawns a compiler per runtime library exhausts: zig dies with `unable to load source: ProcessFdQuotaExceeded` and the same Dockerfile builds fine under Docker Desktop, which hands out a million. Nothing is passed unless set, so the default stays buildah''s. A value above the builder''s own hard limit fails the build rather than being clamped.'
+        type: string
+        required: false
+        default: ''
       extra-tags:
         description: 'Additional full image refs to tag, newline-separated (e.g. ghcr.io/ferrlabs/foo:sha-<gitsha> for traceability). Appended to <image-name>:<tag> and <image-name>:latest.'
         type: string
@@ -207,6 +212,7 @@ jobs:
           DOCKERFILE: ${{ inputs.dockerfile }}
           PLATFORMS: ${{ inputs.platforms }}
           BUILD_ARGS: ${{ inputs.build-args }}
+          BUILD_ULIMITS: ${{ inputs.build-ulimits }}
           EXTRA_TAGS: ${{ inputs.extra-tags }}
           PUSH: ${{ inputs.push }}
           PUSH_RETRIES: ${{ inputs.push-retries }}
@@ -255,6 +261,12 @@ jobs:
             [ -n "$line" ] && build_arg_args+=(--build-arg "$line")
           done <<< "${BUILD_ARGS:-}"
 
+          ulimit_args=()
+          while IFS= read -r line; do
+            [ -n "$line" ] && ulimit_args+=(--ulimit "$line")
+          done <<< "${BUILD_ULIMITS:-}"
+          [ ${#ulimit_args[@]} -gt 0 ] && echo "RUN ulimits: ${BUILD_ULIMITS}"
+
           # Registry-side layer cache. The runner's container store is an
           # emptyDir on an ephemeral ARC pod, so `--layers` alone caches
           # nothing across runs — a Rust image recompiles every dependency on
@@ -282,7 +294,7 @@ jobs:
               --isolation=chroot --layers \
               --platform "$PLATFORMS" \
               "$@" \
-              "${secret_args[@]}" "${build_arg_args[@]}" \
+              "${secret_args[@]}" "${build_arg_args[@]}" "${ulimit_args[@]}" \
               --manifest "$IMAGE:$TAG" \
               -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
           }
