@@ -24,9 +24,13 @@ on:
         type: string
         default: '24'
       pnpm-version:
-        description: 'pnpm version'
+        description: >-
+          pnpm version for `pnpm/action-setup`. Empty, the default, makes the
+          action read `packageManager` from the caller's package.json, which
+          keeps CI on the version the repository actually pins. Set it only for
+          a repository that has no `packageManager` field.
         type: string
-        default: '10'
+        default: ''
       package-manager:
         description: 'Package manager (pnpm, npm, yarn)'
         type: string
