@@ -81,7 +81,7 @@ jobs:
       # repo has a Cargo.toml.
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-      - uses: FerrLabs/FerrFlow@7a34f3e8ffa9c2e7d96c9a381af7ec987b0aa45e # v7.11.1
+      - uses: FerrLabs/FerrFlow@a03d30b10abc968fc366cd3eb6495b49fbb481b9 # v7.20.1
         env:
           # Lets cargo-based postBump hooks read the private Kellnr index.
           # Empty (and unused) for repos that don't consume Kellnr.
@@ -113,7 +113,7 @@ jobs:
       # private Kellnr index for dependency metadata).
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-      - uses: FerrLabs/FerrFlow@7a34f3e8ffa9c2e7d96c9a381af7ec987b0aa45e # v7.11.1
+      - uses: FerrLabs/FerrFlow@a03d30b10abc968fc366cd3eb6495b49fbb481b9 # v7.20.1
         env:
           CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
         with:
