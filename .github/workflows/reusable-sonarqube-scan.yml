@@ -43,12 +43,19 @@ on:
         description: 'OpenGrep ruleset for the SAST import (path/URL for `opengrep scan -f`). Empty clones the community opengrep/opengrep-rules set.'
         type: string
         default: ''
+      concurrency-key:
+        description: >-
+          Disambiguates the concurrency group when one caller job calls this
+          workflow more than once, typically from a matrix. Two calls that
+          share a group cancel each other, and the loser never re-runs.
+        type: string
+        default: ''
     secrets:
       SONAR_TOKEN:
         required: true
 
 concurrency:
-  group: reusable-sonarqube-scan-${{ inputs.project-key }}-${{ inputs.working-directory }}-${{ github.workflow }}-${{ github.ref }}
+  group: reusable-sonarqube-scan-${{ inputs.project-key }}-${{ inputs.working-directory }}-${{ inputs.concurrency-key }}-${{ github.workflow }}-${{ github.ref }}
   # Never cancel on a tag: the release that produced it is already out,
   # so that build has to complete.
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}

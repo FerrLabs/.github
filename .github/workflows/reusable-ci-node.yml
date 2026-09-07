@@ -7,6 +7,14 @@ on:
         description: 'Package root (for monorepos / nested packages)'
         type: string
         default: '.'
+      concurrency-key:
+        description: >-
+          Disambiguates the concurrency group when one caller job calls this
+          workflow more than once, typically from a matrix. Two calls that
+          share a group cancel each other, and the loser never re-runs: pass
+          the matrix value (or any per-call constant) here.
+        type: string
+        default: ''
       runner:
         description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use the self-hosted ferrlabs-k8s (medium) pool, public repos use ubuntu-latest.'
         type: string
@@ -129,7 +137,7 @@ on:
         required: false
 
 concurrency:
-  group: reusable-ci-node-${{ inputs.working-directory }}-${{ github.workflow }}-${{ github.ref }}
+  group: reusable-ci-node-${{ inputs.working-directory }}-${{ inputs.concurrency-key }}-${{ github.workflow }}-${{ github.ref }}
   # Never cancel on a tag: the release that produced it is already out,
   # so that build has to complete.
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
