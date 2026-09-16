@@ -121,4 +121,3 @@ runs:
         else
           echo "::warning title=sccache disabled::garage unreachable (${SCCACHE_ENDPOINT}) — building without sccache; CI continues normally."
         fi
-        echo "sccache server up, talking to ${{ inputs.endpoint }}/${{ inputs.bucket }}"
