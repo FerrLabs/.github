@@ -31,7 +31,7 @@ inputs:
   endpoint:
     description: 'garage S3 endpoint (host:port, no scheme)'
     required: false
-    default: 'garage.ferrlabs.svc.cluster.local:3900'
+    default: 'sccache.github-runner.svc.cluster.local:3900'
   region:
     description: "garage s3_region (NOT 'garage' — the cluster uses 'ferrlabs')"
     required: false
@@ -47,10 +47,10 @@ runs:
   using: composite
   steps:
     # All steps are gated on self-hosted runners: the garage S3 backend lives at
-    # garage.ferrlabs.svc.cluster.local, reachable only from in-cluster
-    # ferrlabs-k8s runners. On github-hosted runners (ubuntu-latest, public
-    # repos) every step is skipped and this action is a safe no-op — cargo
-    # builds normally with whatever rust-cache provides.
+    # sccache.github-runner.svc.cluster.local, a node-local Service reachable
+    # only from in-cluster ferrlabs-k8s runners. On github-hosted runners
+    # (ubuntu-latest, public repos) every step is skipped and this action is a
+    # safe no-op — cargo builds normally with whatever rust-cache provides.
     - name: Install sccache
       if: ${{ runner.environment == 'self-hosted' }}
       uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
@@ -121,4 +121,3 @@ runs:
         else
           echo "::warning title=sccache disabled::garage unreachable (${SCCACHE_ENDPOINT}) — building without sccache; CI continues normally."
         fi
-        echo "sccache server up, talking to ${{ inputs.endpoint }}/${{ inputs.bucket }}"

@@ -167,6 +167,7 @@ permissions:
   contents: read
 
 env:
+  SCCACHE_ENDPOINT: sccache.github-runner.svc.cluster.local:3900
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
@@ -226,6 +227,7 @@ jobs:
         if: inputs.cache
         uses: FerrLabs/.github/.github/actions/setup-sccache@2883414f68b4029d28d8700d2a51d070f7528111 # main
         with:
+          endpoint: ${{ env.SCCACHE_ENDPOINT }}
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - name: Format check
@@ -310,6 +312,7 @@ jobs:
         if: inputs.cache
         uses: FerrLabs/.github/.github/actions/setup-sccache@2883414f68b4029d28d8700d2a51d070f7528111 # main
         with:
+          endpoint: ${{ env.SCCACHE_ENDPOINT }}
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       # Compile the test binaries BEFORE creating the throwaway DB. Otherwise the
@@ -551,6 +554,7 @@ jobs:
         if: inputs.cache
         uses: FerrLabs/.github/.github/actions/setup-sccache@2883414f68b4029d28d8700d2a51d070f7528111 # main
         with:
+          endpoint: ${{ env.SCCACHE_ENDPOINT }}
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - if: inputs.coverage-tool == 'llvm-cov'
