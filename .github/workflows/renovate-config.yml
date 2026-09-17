@@ -1,0 +1,37 @@
+name: Renovate config
+
+on:
+  pull_request:
+    paths:
+      - "default.json"
+      - "renovate.json"
+      - "snippets/renovate.json"
+      - ".github/workflows/renovate-config.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate config (strict)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      # Keep in step with the Renovate image of the in-cluster CronJob
+      # (FerrLabs/Infra, platform/renovate/renovate-cronjob.yaml).
+      RENOVATE_VERSION: "44"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+      - run: |
+          npx --yes --package "renovate@${RENOVATE_VERSION}" \
+            renovate-config-validator --strict \
+            default.json renovate.json snippets/renovate.json
