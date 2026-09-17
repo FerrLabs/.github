@@ -19,8 +19,8 @@ name: Renovate self-check
 #                   both of which fail as a WARN plus `no-result`, never as a
 #                   non-zero exit.
 #
-# Runs on any change to the Renovate config, and on a schedule 30 minutes
-# after each sweep so a regression coming from Renovate itself (a datasource
+# Runs on any change to the Renovate config, and every 6 hours
+# so a regression coming from Renovate itself (a datasource
 # change, a registry outage, an expired CARGO_REGISTRIES_KELLNR_TOKEN) shows
 # up as a red run rather than as an absence of PRs.
 
@@ -31,7 +31,6 @@ on:
       - "renovate.json"
       - "snippets/renovate.json"
       - "tests/renovate/**"
-      - ".github/workflows/renovate.yml"
       - ".github/workflows/renovate-selfcheck.yml"
   schedule:
     - cron: "30 */6 * * *"
@@ -44,11 +43,12 @@ concurrency:
 permissions: {}
 
 env:
-  # Keep in step with the Renovate bundled by renovatebot/github-action in
-  # renovate.yml — a major here should be raised when that action's major is.
+  # Keep in step with the Renovate image of the in-cluster CronJob
+  # (FerrLabs/Infra, platform/renovate/renovate-cronjob.yaml): a major here
+  # should be raised when that image's major is.
   # Pinned to a major (not `latest`) so an upstream breaking change surfaces
   # as a deliberate bump rather than as a surprise red run.
-  RENOVATE_VERSION: "41"
+  RENOVATE_VERSION: "44"
 
 jobs:
   validate:
@@ -101,7 +101,7 @@ jobs:
 
       # Mirrors the real sweep's Cargo configuration exactly: same registry
       # URL, same hostRule, same global flag, same shared preset. If any of
-      # them regresses in renovate.yml or default.json, this run stops finding
+      # them regresses in platform/renovate/run.mjs (FerrLabs/Infra) or default.json, this run stops finding
       # the update.
       - name: Run Renovate against the fixture
         working-directory: tests/renovate/fixture
@@ -160,7 +160,7 @@ jobs:
 
           if grep -q 'allowCustomCrateRegistries=true is required' "${LOG}"; then
             echo "::error::The crate datasource refused crates.ferrlabs.com." \
-                 "RENOVATE_ALLOW_CUSTOM_CRATE_REGISTRIES must be set in renovate.yml."
+                 "RENOVATE_ALLOW_CUSTOM_CRATE_REGISTRIES must be set in platform/renovate/run.mjs (FerrLabs/Infra)."
             fail=1
           fi
 
