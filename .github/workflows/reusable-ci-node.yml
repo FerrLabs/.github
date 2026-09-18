@@ -285,7 +285,7 @@ jobs:
   sonarqube:
     name: SonarQube
     # !cancelled() so analysis still runs when tests fail (coverage may be partial).
-    if: inputs.enable-sonar && !cancelled()
+    if: inputs.enable-sonar && github.event_name != 'pull_request' && !cancelled()
     # needs: test so the coverage artifact exists before the scan downloads it.
     needs: test
     permissions:

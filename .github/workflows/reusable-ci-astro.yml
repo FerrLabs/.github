@@ -206,7 +206,7 @@ jobs:
     # Static analysis only — this Astro reusable has no test/coverage job, so no
     # coverage artifact is handed over. !cancelled() so it still runs alongside
     # build/lint regardless of their result.
-    if: inputs.enable-sonar && !cancelled()
+    if: inputs.enable-sonar && github.event_name != 'pull_request' && !cancelled()
     needs: build
     permissions:
       contents: read

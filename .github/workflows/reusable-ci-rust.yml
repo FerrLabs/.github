@@ -622,7 +622,7 @@ jobs:
     # !cancelled() so analysis runs even when the coverage job is skipped
     # (enable-coverage false / release commit) or fails — keep enable-coverage on
     # for full reports.
-    if: inputs.enable-sonar && !cancelled()
+    if: inputs.enable-sonar && github.event_name != 'pull_request' && !cancelled()
     needs: coverage
     permissions:
       contents: read
