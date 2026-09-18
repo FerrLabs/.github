@@ -42,7 +42,7 @@ on:
         required: false
         default: ''
       smoke-test-cmd:
-        description: 'Shell command to functionally test the built image before it is pushed. When set, the image is built into the local buildah/containers store (single-platform only — set platforms accordingly), this command runs with $SMOKE_IMAGE pointing at that store ref, and the registry push happens only if it passes. Run it with `podman run "$SMOKE_IMAGE"` — NOT `docker run`: the image is not yet pushed and Docker does not share buildah''s store, so docker would try to pull the missing tag and fail with `manifest unknown`. Empty = skip.'
+        description: 'Shell command to functionally test the built image before it is pushed. When set, the image is built into the local buildah/containers store (single-platform only — set platforms accordingly), this command runs with $SMOKE_IMAGE pointing at that store ref, and the registry push happens only if it passes. Run it from that store, never with `docker run`: the image is not yet pushed and Docker does not share buildah''s store, so docker would try to pull the missing tag and fail with `manifest unknown`. On a hosted runner `podman run "$SMOKE_IMAGE"` works. The FerrLabs runners have no podman: use `ctr=$(buildah from "$SMOKE_IMAGE")` then `buildah run --isolation oci --network none "$ctr" -- …`. Empty = skip.'
         type: string
         required: false
         default: ''
@@ -77,21 +77,15 @@ on:
         required: false
         default: 3
       runner:
-        description: 'GitHub Actions runner label for the build job (the heavy one). Private consumers pass `ferrlabs-k8s`; public consumers leave the default.'
+        description: 'GitHub Actions runner label for the build job (the heavy one). Leave empty for `ferrlabs-k8s-large` on a private FerrLabs repository and `ubuntu-latest` anywhere else, including a private repository outside the organisation.'
         type: string
         required: false
-        default: 'ubuntu-latest'
+        default: ''
       helper-runner:
         description: >-
           Runner label for the four supporting jobs (hadolint, Trivy, cosign,
-          SBOM). Leave empty to keep the historical behaviour: the self-hosted
-          `ferrlabs-k8s` pool on a private repository, `ubuntu-latest` on a
-          public one. That default reads a repository''s VISIBILITY as a proxy
-          for WHICH ORGANISATION owns it, which holds only while every private
-          consumer is a FerrLabs repository. A private repository in another
-          organisation targets a runner label that does not exist there, and its
-          jobs queue forever with no error. Such a consumer passes
-          `ubuntu-latest` here.
+          SBOM). Leave empty for the FerrLabs pools on a private FerrLabs
+          repository and `ubuntu-latest` anywhere else.
         type: string
         required: false
         default: ''
@@ -153,7 +147,7 @@ jobs:
     # hadolint via its static binary (not the hadolint-action Docker container)
     # so it runs on the self-hosted pool for private repos — the ARC runners
     # have buildah but no Docker daemon. Public repos fall back to ubuntu-latest.
-    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && github.repository_owner == 'FerrLabs' && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -173,7 +167,7 @@ jobs:
   build:
     name: Build & push
     needs: hadolint
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && github.repository_owner == 'FerrLabs' && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
     outputs:
       digest: ${{ steps.push.outputs.digest }}
     steps:
@@ -373,7 +367,7 @@ jobs:
     # medium, not inputs.runner (-large): Trivy just pulls the pushed image
     # from the registry and scans it — no buildah/compile, so it doesn't need
     # the scarce 2-slot large tier. Frees a large slot per docker-build run.
-    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && github.repository_owner == 'FerrLabs' && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       # Trivy reads ~/.docker/config.json to pull the image; without this a
       # private GHCR image fails with a 401/manifest-unknown.
@@ -475,7 +469,7 @@ jobs:
     # self-hosted pool for private repos. Public repos fall back to ubuntu-latest.
     # Keyless signing uses the Actions OIDC token, which is available on
     # self-hosted runners too (needs id-token: write, already granted).
-    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && github.repository_owner == 'FerrLabs' && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
     steps:
       - name: Install cosign
         run: |
@@ -514,7 +508,7 @@ jobs:
     if: inputs.push
     # medium, not inputs.runner (-large): Syft pulls the pushed image and
     # generates the SBOM — no buildah/compile, so no need for the large tier.
-    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && 'ferrlabs-k8s' || 'ubuntu-latest') }}
+    runs-on: ${{ inputs.helper-runner != '' && inputs.helper-runner || (github.event.repository.private && github.repository_owner == 'FerrLabs' && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     steps:
       # Syft pulls the image via the Docker keychain (~/.docker/config.json);
       # a private GHCR image needs this login or the scan fails to fetch it.

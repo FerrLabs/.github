@@ -152,6 +152,7 @@ jobs:
     uses: ./.github/workflows/reusable-docker-build.yml
     with:
       image-name: ${{ inputs.docker-image-name }}
+      runner: ${{ inputs.runner }}
       tag: ${{ github.ref_name }}
       context: .
       dockerfile: Dockerfile
