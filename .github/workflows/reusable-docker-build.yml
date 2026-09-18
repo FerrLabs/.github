@@ -77,10 +77,10 @@ on:
         required: false
         default: 3
       runner:
-        description: 'GitHub Actions runner label for the build job (the heavy one). Private consumers pass `ferrlabs-k8s`; public consumers leave the default.'
+        description: 'GitHub Actions runner label for the build job (the heavy one). Leave empty for `ferrlabs-k8s` on a private FerrLabs repository and `ubuntu-latest` anywhere else, including a private repository outside the organisation.'
         type: string
         required: false
-        default: 'ubuntu-latest'
+        default: ''
       helper-runner:
         description: >-
           Runner label for the four supporting jobs (hadolint, Trivy, cosign,
@@ -173,7 +173,7 @@ jobs:
   build:
     name: Build & push
     needs: hadolint
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && github.repository_owner == 'FerrLabs' && 'ferrlabs-k8s' || 'ubuntu-latest') }}
     outputs:
       digest: ${{ steps.push.outputs.digest }}
     steps:
