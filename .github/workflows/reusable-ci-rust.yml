@@ -217,7 +217,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0 # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
-          components: ${{ !(inputs.run-tests && inputs.enable-coverage && inputs.coverage-tool == 'llvm-cov') && inputs.rust-components || (inputs.rust-components != '' && format('{0}, llvm-tools-preview', inputs.rust-components) || 'llvm-tools-preview') }}
+          components: ${{ env.COVERAGE_IN_TEST == 'true' && (inputs.rust-components != '' && format('{0}, llvm-tools-preview', inputs.rust-components) || 'llvm-tools-preview') || inputs.rust-components }}
           targets: ${{ inputs.rust-targets }}
       - if: inputs.cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
@@ -255,7 +255,7 @@ jobs:
           TEST_ARGS: ${{ inputs.test-args }}
         run: cargo test --locked $CARGO_FLAGS $TEST_ARGS
       - if: env.COVERAGE_IN_TEST == 'true'
-        uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
+        uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2.85.7
         with:
           tool: cargo-llvm-cov
       - name: Tests with coverage (llvm-cov)
@@ -264,6 +264,12 @@ jobs:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
           COVERAGE_FLAGS: ${{ inputs.coverage-flags || inputs.cargo-flags }}
         run: cargo llvm-cov --locked $COVERAGE_FLAGS --workspace --lcov --output-path lcov.info
+      - name: Doctests
+        if: env.COVERAGE_IN_TEST == 'true' && !contains(inputs.cargo-flags, '--all-targets') && !contains(inputs.test-args, '--lib')
+        env:
+          FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
+          CARGO_FLAGS: ${{ inputs.cargo-flags }}
+        run: cargo test --locked --doc $CARGO_FLAGS
       - if: env.COVERAGE_IN_TEST == 'true'
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
@@ -283,8 +289,9 @@ jobs:
         if: env.COVERAGE_IN_TEST == 'true' && inputs.coverage-upload-as != ''
         env:
           BASE: ${{ inputs.working-directory }}
+          OUT: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov
         run: |
-          mkdir -p "${{ runner.temp }}/sonarcov"
+          mkdir -p "$(dirname "$OUT")"
           awk -v ws="$GITHUB_WORKSPACE" -v base="$BASE" '
             /^SF:/ {
               p = substr($0, 4)
@@ -293,7 +300,7 @@ jobs:
               print "SF:" p; next
             }
             { print }
-          ' lcov.info > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
+          ' lcov.info > "$OUT"
       - name: Upload rebased lcov
         if: env.COVERAGE_IN_TEST == 'true' && inputs.coverage-upload-as != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -470,7 +477,7 @@ jobs:
           # Nothing is compiled here (audit and deny read Cargo.lock), so target/
           # holds nothing worth a round trip to GitHub's cache.
           cache-targets: false
-      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
+      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2.85.7
         with:
           tool: cargo-audit,cargo-deny,cargo-machete
       # cargo-deny clones the RustSec database unauthenticated, and GitHub rate
@@ -563,7 +570,7 @@ jobs:
     env:
       CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
     if: |
-      inputs.enable-coverage && !(inputs.run-tests && inputs.enable-coverage && inputs.coverage-tool == 'llvm-cov') && (
+      inputs.enable-coverage && !(inputs.run-tests && inputs.coverage-tool == 'llvm-cov') && (
         !inputs.skip-on-release-commit ||
         github.event_name != 'push' ||
         !startsWith(github.event.head_commit.message, 'chore(release):')
@@ -622,7 +629,7 @@ jobs:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - if: inputs.coverage-tool == 'llvm-cov'
-        uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
+        uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2.85.7
         with:
           tool: cargo-llvm-cov
       - name: Generate coverage (llvm-cov)
