@@ -222,6 +222,12 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: ${{ inputs.working-directory }}
+          # On our runners sccache owns target/ (garage on their node), and caching
+          # it here too ships a multi-GB archive through GitHub's cache on every
+          # job, at the ~9 MB/s it serves self-hosted runners: minutes before the
+          # first compile. GitHub-hosted runners have no sccache and a fast path to
+          # that cache, so target/ stays cached there.
+          cache-targets: ${{ runner.environment == 'github-hosted' }}
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
@@ -412,6 +418,9 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: ${{ inputs.working-directory }}
+          # Nothing is compiled here (audit and deny read Cargo.lock), so target/
+          # holds nothing worth a round trip to GitHub's cache.
+          cache-targets: false
       - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
         with:
           tool: cargo-audit,cargo-deny,cargo-machete
@@ -549,6 +558,12 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: ${{ inputs.working-directory }}
+          # On our runners sccache owns target/ (garage on their node), and caching
+          # it here too ships a multi-GB archive through GitHub's cache on every
+          # job, at the ~9 MB/s it serves self-hosted runners: minutes before the
+          # first compile. GitHub-hosted runners have no sccache and a fast path to
+          # that cache, so target/ stays cached there.
+          cache-targets: ${{ runner.environment == 'github-hosted' }}
       # Compiled-artifact cache on garage S3. Self-gating: no-op off our runners.
       - name: Setup sccache (garage S3)
         if: inputs.cache
