@@ -7,7 +7,7 @@
     "helpers:pinGitHubActionDigests"
   ],
   "dependencyDashboard": false,
-  "rebaseWhen": "behind-base-branch",
+  "rebaseWhen": "conflicted",
   "recreateWhen": "always",
   "minimumReleaseAge": "1 day",
   "prConcurrentLimit": 0,
