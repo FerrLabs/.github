@@ -176,6 +176,7 @@ jobs:
     name: Test
     env:
       CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
+      COVERAGE_IN_TEST: ${{ inputs.run-tests && inputs.enable-coverage && inputs.coverage-tool == 'llvm-cov' }}
     if: |
       (inputs.check-fmt || inputs.check-clippy || inputs.run-tests) && (
         !inputs.skip-on-release-commit ||
@@ -216,7 +217,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0 # master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
-          components: ${{ inputs.rust-components }}
+          components: ${{ env.COVERAGE_IN_TEST == 'true' && (inputs.rust-components != '' && format('{0}, llvm-tools-preview', inputs.rust-components) || 'llvm-tools-preview') || inputs.rust-components }}
           targets: ${{ inputs.rust-targets }}
       - if: inputs.cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
@@ -247,12 +248,67 @@ jobs:
           CLIPPY_ARGS: ${{ inputs.clippy-args }}
         run: cargo clippy --locked $CARGO_FLAGS -- $CLIPPY_ARGS
       - name: Tests
-        if: inputs.run-tests
+        if: inputs.run-tests && env.COVERAGE_IN_TEST != 'true'
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
           CARGO_FLAGS: ${{ inputs.cargo-flags }}
           TEST_ARGS: ${{ inputs.test-args }}
         run: cargo test --locked $CARGO_FLAGS $TEST_ARGS
+      - if: env.COVERAGE_IN_TEST == 'true'
+        uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2.85.7
+        with:
+          tool: cargo-llvm-cov
+      - name: Tests with coverage (llvm-cov)
+        if: env.COVERAGE_IN_TEST == 'true'
+        env:
+          FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
+          COVERAGE_FLAGS: ${{ inputs.coverage-flags || inputs.cargo-flags }}
+        run: cargo llvm-cov --locked $COVERAGE_FLAGS --workspace --lcov --output-path lcov.info
+      - name: Doctests
+        if: env.COVERAGE_IN_TEST == 'true' && !contains(inputs.cargo-flags, '--all-targets') && !contains(inputs.test-args, '--lib')
+        env:
+          FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
+          CARGO_FLAGS: ${{ inputs.cargo-flags }}
+        run: cargo test --locked --doc $CARGO_FLAGS
+      - if: env.COVERAGE_IN_TEST == 'true'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          working-directory: ${{ inputs.working-directory }}
+      - name: Hand coverage to the SonarQube job
+        if: env.COVERAGE_IN_TEST == 'true' && inputs.enable-sonar
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
+          path: ${{ inputs.working-directory }}/lcov.info
+          if-no-files-found: warn
+          retention-days: 1
+      - name: Rebase lcov to repo root
+        if: env.COVERAGE_IN_TEST == 'true' && inputs.coverage-upload-as != ''
+        env:
+          BASE: ${{ inputs.working-directory }}
+          OUT: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov
+        run: |
+          mkdir -p "$(dirname "$OUT")"
+          awk -v ws="$GITHUB_WORKSPACE" -v base="$BASE" '
+            /^SF:/ {
+              p = substr($0, 4)
+              if (substr(p, 1, length(ws) + 1) == ws "/") p = substr(p, length(ws) + 2)
+              if (p !~ /^\//) { if (base != "." && substr(p, 1, length(base) + 1) != base "/") p = base "/" p }
+              print "SF:" p; next
+            }
+            { print }
+          ' lcov.info > "$OUT"
+      - name: Upload rebased lcov
+        if: env.COVERAGE_IN_TEST == 'true' && inputs.coverage-upload-as != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ inputs.coverage-upload-as }}
+          path: ${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov
+          if-no-files-found: warn
+          retention-days: 1
 
   # DB-backed integration tests. Postgres is provided out-of-band by the shared
   # `postgres-ci` pod (ns github-runner) instead of being apt-installed inside
@@ -421,7 +477,7 @@ jobs:
           # Nothing is compiled here (audit and deny read Cargo.lock), so target/
           # holds nothing worth a round trip to GitHub's cache.
           cache-targets: false
-      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
+      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2.85.7
         with:
           tool: cargo-audit,cargo-deny,cargo-machete
       # cargo-deny clones the RustSec database unauthenticated, and GitHub rate
@@ -514,7 +570,7 @@ jobs:
     env:
       CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
     if: |
-      inputs.enable-coverage && (
+      inputs.enable-coverage && !(inputs.run-tests && inputs.coverage-tool == 'llvm-cov') && (
         !inputs.skip-on-release-commit ||
         github.event_name != 'push' ||
         !startsWith(github.event.head_commit.message, 'chore(release):')
@@ -573,7 +629,7 @@ jobs:
           s3-key: ${{ secrets.SCCACHE_S3_KEY }}
           s3-secret: ${{ secrets.SCCACHE_S3_SECRET }}
       - if: inputs.coverage-tool == 'llvm-cov'
-        uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
+        uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2.85.7
         with:
           tool: cargo-llvm-cov
       - name: Generate coverage (llvm-cov)
@@ -638,7 +694,7 @@ jobs:
     # (enable-coverage false / release commit) or fails — keep enable-coverage on
     # for full reports.
     if: inputs.enable-sonar && github.event_name != 'pull_request' && !cancelled()
-    needs: coverage
+    needs: [test, coverage]
     permissions:
       contents: read
     uses: FerrLabs/.github/.github/workflows/reusable-sonarqube-scan.yml@efe7f9708acb0ab525649badcade6e3a6ef678b5 # main
