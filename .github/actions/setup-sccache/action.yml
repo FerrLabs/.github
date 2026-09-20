@@ -31,7 +31,7 @@ inputs:
   endpoint:
     description: 'garage S3 endpoint (host:port, no scheme)'
     required: false
-    default: 'sccache.github-runner.svc.cluster.local:3900'
+    default: 'sccache-s3.github-runner.svc.cluster.local:3900'
   region:
     description: "garage s3_region (NOT 'garage' — the cluster uses 'ferrlabs')"
     required: false
@@ -47,7 +47,7 @@ runs:
   using: composite
   steps:
     # All steps are gated on self-hosted runners: the garage S3 backend lives at
-    # sccache.github-runner.svc.cluster.local, a node-local Service reachable
+    # sccache-s3.github-runner.svc.cluster.local, a node-local Service reachable
     # only from in-cluster ferrlabs-k8s runners. On github-hosted runners
     # (ubuntu-latest, public repos) every step is skipped and this action is a
     # safe no-op — cargo builds normally with whatever rust-cache provides.

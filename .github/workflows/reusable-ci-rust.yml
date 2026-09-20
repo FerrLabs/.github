@@ -167,7 +167,7 @@ permissions:
   contents: read
 
 env:
-  SCCACHE_ENDPOINT: sccache.github-runner.svc.cluster.local:3900
+  SCCACHE_ENDPOINT: sccache-s3.github-runner.svc.cluster.local:3900
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
