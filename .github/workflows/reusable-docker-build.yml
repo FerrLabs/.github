@@ -462,7 +462,12 @@ jobs:
 
   cosign:
     name: cosign (sign + attest)
-    needs: [build, trivy]
+    # Deliberately not gated on `trivy`. The image is already pushed by the
+    # time the scan runs, so a failing scan does not withhold the artefact,
+    # only its signature, and consumers end up with an unsigned image that
+    # shipped anyway. A signature attests provenance, not the absence of
+    # CVEs; the scan keeps its own red check. See FerrTrack-Cloud#712.
+    needs: build
     if: inputs.push
     # cosign from its static binary (not cosign-installer, which needs
     # envsubst/gettext absent from the minimal ARC image) so signing runs on the
