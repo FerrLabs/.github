@@ -126,6 +126,7 @@
       ],
       "matchDepTypes": [
         "pnpm-workspace.overrides",
+        "pnpm.overrides",
         "overrides",
         "resolutions"
       ],
