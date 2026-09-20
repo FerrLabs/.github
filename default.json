@@ -241,7 +241,7 @@
       "automergeStrategy": "squash"
     },
     {
-      "description": "Charts published by the org (`oci://ghcr.io/ferrlabs/charts`) — same trust as the @ferrlabs/ npm packages and the `ferrlabs-*` crates above. Without this rule the third-party chart rule right above makes our own publications wait a day, so a chart released in the morning only reaches the cluster the next day (RoxyCloud 0.25.0 through 0.25.2 all queued for 24h). matchPackageNames targets the full OCI name: the flux manager resolves a HelmRelease backed by a `type: oci` HelmRepository to the docker datasource, where a plain HTTP repository would yield the chart name alone. Majors stay manual, the rule below turns their automerge off.",
+      "description": "Charts published by the org (`oci://ghcr.io/ferrlabs/charts`) — same trust as the @ferrlabs/ npm packages and the `ferrlabs-*` crates above. Without this rule the third-party chart rule right above makes our own publications wait a day, so a chart released in the morning only reaches the cluster the next day (RoxyCloud 0.25.0 through 0.25.2 all queued for 24h). matchPackageNames targets the full OCI name: the flux manager resolves a HelmRelease backed by a `type: oci` HelmRepository to the docker datasource, where a plain HTTP repository would yield the chart name alone. Patch and minor only: without matchUpdateTypes a major would join the `FerrLabs charts` group, and since grouping ignores the major/minor split, generateBranchConfig turns the whole branch's automerge off as soon as one upgrade carries `automerge: false` — which the last rule gives majors. The patch and minor bumps this rule exists to fast-track would then sit and wait for someone to deal with the major. Restricted this way a major falls through to the global one-day age and stays an ungrouped manual PR.",
       "matchManagers": [
         "flux",
         "helmv3",
@@ -249,6 +249,10 @@
       ],
       "matchPackageNames": [
         "ghcr.io/ferrlabs/charts/**"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
       ],
       "schedule": [
         "* * * * *"
