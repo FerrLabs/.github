@@ -241,6 +241,26 @@
       "automergeStrategy": "squash"
     },
     {
+      "description": "Charts published by the org (`oci://ghcr.io/ferrlabs/charts`) — same trust as the @ferrlabs/ npm packages and the `ferrlabs-*` crates above. Without this rule the third-party chart rule right above makes our own publications wait a day, so a chart released in the morning only reaches the cluster the next day (RoxyCloud 0.25.0 through 0.25.2 all queued for 24h). matchPackageNames targets the full OCI name: the flux manager resolves a HelmRelease backed by a `type: oci` HelmRepository to the docker datasource, where a plain HTTP repository would yield the chart name alone. Majors stay manual, the rule below turns their automerge off.",
+      "matchManagers": [
+        "flux",
+        "helmv3",
+        "helm-values"
+      ],
+      "matchPackageNames": [
+        "ghcr.io/ferrlabs/charts/**"
+      ],
+      "schedule": [
+        "* * * * *"
+      ],
+      "minimumReleaseAge": "0",
+      "internalChecksFilter": "none",
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "groupName": "FerrLabs charts"
+    },
+    {
       "description": "Major updates — always manual",
       "matchUpdateTypes": [
         "major"
