@@ -120,14 +120,19 @@
       "groupName": "FerrLabs Cargo crates"
     },
     {
-      "description": "`@analogjs/content` declares `front-matter: ^4.0.2` as a peer dependency, and `front-matter@4.0.2` pins `js-yaml ^3.13.1`. Renovate's vulnerability alerts propose jumping straight to v5, which builds a tree where `front-matter` calls an API js-yaml no longer has (`TypeError: loader is not a function`, at config load, so the whole site build dies). GHSA-2883-xcg3-v3hh is patched on every major line, not only the newest: 3.15.2 and 4.3.2 both carry the fix, so staying on 3.x is remediated. Org-wide on purpose: seven sites consume `@analogjs/content` (FerrFlow, FerrVault, FerrTrack, FerrGrowth, FerrFleet, FerrLens and FerrLabs), so scoping this to the repos that happened to get a PR first would leave the other four to break the same way. Tracked for removal in FerrLabs/.github#353, to be lifted the day Analog stops requiring front-matter.",
+      "description": "Sites built on `@analogjs/content` pull `front-matter@4.0.2`, which calls `yaml.safeLoad`. js-yaml removed that in 4, where the stub throws, and deleted the stub in 5 (`TypeError: loader is not a function`), so either major kills the site build at config load. front-matter pins `js-yaml ^3.13.1`, so nothing reaches it except a pnpm override we wrote ourselves to clear GHSA-2883-xcg3-v3hh, and Renovate keeps proposing majors for that override key. Scoped to override entries rather than to js-yaml everywhere: a direct js-yaml dependency in any repo stays free to move, including onto 4.3.2, which carries the same fix. 3.15.2 carries it too, so an override held on 3.x is remediated. Seven sites consume `@analogjs/content` (FerrFlow, FerrVault, FerrTrack, FerrGrowth, FerrFleet, FerrLens and FerrLabs), so this is not scoped per repo. Tracked for removal in FerrLabs/.github#353, to be lifted the day Analog stops requiring front-matter.",
       "matchManagers": [
         "npm"
+      ],
+      "matchDepTypes": [
+        "pnpm-workspace.overrides",
+        "overrides",
+        "resolutions"
       ],
       "matchPackageNames": [
         "js-yaml"
       ],
-      "allowedVersions": "<5"
+      "allowedVersions": "<4"
     },
     {
       "description": "Third-party npm — quarantine for 3 days after release before opening PR, then auto-merge patch/minor. Release age is the only gate: this rule used to carry `matchMergeConfidence`, which is not a real Renovate option (the real one is `matchConfidence`) and therefore matched nothing, so the confidence gate never applied. Rather than adopt `matchConfidence` — which needs a Mend API key and reports `neutral` without one, silently disabling npm automerge everywhere — the quarantine is raised from 1 to 3 days, which is where most malicious publishes are detected and yanked. npm is deliberately stricter than the Cargo rule below: it is the ecosystem where these attacks actually land.",
