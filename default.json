@@ -120,6 +120,16 @@
       "groupName": "FerrLabs Cargo crates"
     },
     {
+      "description": "`@analogjs/content` declares `front-matter: ^4.0.2` as a peer dependency, and `front-matter@4.0.2` pins `js-yaml ^3.13.1`. Renovate's vulnerability alerts propose jumping straight to v5, which builds a tree where `front-matter` calls an API js-yaml no longer has (`TypeError: loader is not a function`, at config load, so the whole site build dies). GHSA-2883-xcg3-v3hh is patched on every major line, not only the newest: 3.15.2 and 4.3.2 both carry the fix, so staying on 3.x is remediated. Lift this the day Analog stops requiring front-matter.",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "js-yaml"
+      ],
+      "allowedVersions": "<5"
+    },
+    {
       "description": "Third-party npm — quarantine for 3 days after release before opening PR, then auto-merge patch/minor. Release age is the only gate: this rule used to carry `matchMergeConfidence`, which is not a real Renovate option (the real one is `matchConfidence`) and therefore matched nothing, so the confidence gate never applied. Rather than adopt `matchConfidence` — which needs a Mend API key and reports `neutral` without one, silently disabling npm automerge everywhere — the quarantine is raised from 1 to 3 days, which is where most malicious publishes are detected and yanked. npm is deliberately stricter than the Cargo rule below: it is the ecosystem where these attacks actually land.",
       "matchManagers": [
         "npm"
