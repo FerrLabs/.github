@@ -296,6 +296,7 @@ jobs:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}
       project-key: ${{ inputs.sonar-project-key }}
+      concurrency-key: ${{ inputs.concurrency-key }}
       coverage-artifact: ${{ (inputs.enable-test && format('sonar-coverage-{0}', inputs.sonar-project-key || github.event.repository.name)) || '' }}
       args: ${{ inputs.enable-test && '-Dsonar.javascript.lcov.reportPaths=.sonarcov/lcov.info' || '' }}
     secrets:
