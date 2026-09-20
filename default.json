@@ -120,7 +120,7 @@
       "groupName": "FerrLabs Cargo crates"
     },
     {
-      "description": "`@analogjs/content` declares `front-matter: ^4.0.2` as a peer dependency, and `front-matter@4.0.2` pins `js-yaml ^3.13.1`. Renovate's vulnerability alerts propose jumping straight to v5, which builds a tree where `front-matter` calls an API js-yaml no longer has (`TypeError: loader is not a function`, at config load, so the whole site build dies). GHSA-2883-xcg3-v3hh is patched on every major line, not only the newest: 3.15.2 and 4.3.2 both carry the fix, so staying on 3.x is remediated. Lift this the day Analog stops requiring front-matter.",
+      "description": "`@analogjs/content` declares `front-matter: ^4.0.2` as a peer dependency, and `front-matter@4.0.2` pins `js-yaml ^3.13.1`. Renovate's vulnerability alerts propose jumping straight to v5, which builds a tree where `front-matter` calls an API js-yaml no longer has (`TypeError: loader is not a function`, at config load, so the whole site build dies). GHSA-2883-xcg3-v3hh is patched on every major line, not only the newest: 3.15.2 and 4.3.2 both carry the fix, so staying on 3.x is remediated. Org-wide on purpose: seven sites consume `@analogjs/content` (FerrFlow, FerrVault, FerrTrack, FerrGrowth, FerrFleet, FerrLens and FerrLabs), so scoping this to the repos that happened to get a PR first would leave the other four to break the same way. Tracked for removal in FerrLabs/.github#353, to be lifted the day Analog stops requiring front-matter.",
       "matchManagers": [
         "npm"
       ],
