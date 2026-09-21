@@ -55,7 +55,7 @@ jobs:
     runs-on: ferrlabs-k8s
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: crate-ci/typos@d43b6c087ac471e2ea7b8af622ff15f05c0c365b # v1
+      - uses: crate-ci/typos@53821664afd79bb88fcdd22fdc2f49d8d3f6cac9 # v1
 
   coverage:
     name: Coverage
@@ -72,7 +72,7 @@ jobs:
           tool: cargo-llvm-cov
       - name: Generate coverage
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
