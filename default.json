@@ -99,15 +99,12 @@
       "groupName": "FerrLabs Kit"
     },
     {
-      "description": "FerrLabs Cargo crates published from Kit (`ferrlabs-*`) — same trust as @ferrlabs/ npm packages. No wait, automerge. registryUrls is a fallback: these deps declare `registry = \"kellnr\"`, which the cargo manager resolves from `.cargo/config.toml` relative to the repo root — but that file lives in each repo's `api/` subdirectory and is not discovered, so the dep would be skipped as `unknown-registry`. In practice the runner supplies CARGO_REGISTRIES_KELLNR_INDEX via RENOVATE_CUSTOM_ENV_VARIABLES, which the extractor reads first (getCargoIndexEnv); registryUrls here covers the case where that env is missing. Note that neither is sufficient on its own: the crate datasource refuses every non-crates.io registry unless allowCustomCrateRegistries=true, which is a global-only option set as RENOVATE_ALLOW_CUSTOM_CRATE_REGISTRIES by the in-cluster runner (FerrLabs/Infra, platform/renovate/run.mjs). Auth comes from the crates.ferrlabs.com hostRule there, which must use hostType `crate` (the datasource id) — `cargo` is the manager id and matches no hostRule.",
+      "description": "FerrLabs Cargo crates published from Kit (`ferrlabs-*`), same trust as @ferrlabs/ npm packages. No wait, automerge. They resolve from crates.io since FerrLabs/Kit#294, so the rule needs no registryUrls and no custom crate registry settings.",
       "matchManagers": [
         "cargo"
       ],
       "matchDepNames": [
         "/^ferrlabs-/"
-      ],
-      "registryUrls": [
-        "sparse+https://crates.ferrlabs.com/api/v1/crates/"
       ],
       "schedule": [
         "* * * * *"
