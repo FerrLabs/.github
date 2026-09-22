@@ -95,9 +95,14 @@ jobs:
           bot: true
           # Signs the release tag. ferrflow[bot] cannot: an App holds no key,
           # and GitHub signs the commits it creates through its API but never
-          # a tag object. Empty in a repo the org secret does not reach, and
-          # the action then skips signing rather than failing the release.
-          tag_signing_key: ${{ secrets.TAG_SIGNING_KEY }}
+          # a tag object.
+          #
+          # The key is passed only when both variables are set, because the
+          # action treats a key with no tagger identity as an error and fails
+          # the release. Anything missing here means no signing rather than a
+          # broken release: a repo the org secret does not reach, and a repo
+          # where the variables do not resolve, both end up with an empty key.
+          tag_signing_key: ${{ (vars.TAG_SIGNING_NAME != '' && vars.TAG_SIGNING_EMAIL != '') && secrets.TAG_SIGNING_KEY || '' }}
           tag_signing_name: ${{ vars.TAG_SIGNING_NAME }}
           tag_signing_email: ${{ vars.TAG_SIGNING_EMAIL }}
 
