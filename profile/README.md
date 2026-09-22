@@ -58,6 +58,12 @@ Model Context Protocol server. Lets AI assistants drive the suite — cut a rele
 - **Open source where it makes sense.** The infra layer should be readable.
 - **No telemetry by default.** Off until you opt in.
 
+## Sponsor
+
+The open-source part of this, FerrFlow, LFSX, the runner, the Kit crates, is free and stays free.
+Sponsoring pays for the time that goes into it: [FerrLabs](https://github.com/sponsors/FerrLabs)
+or [BryanFRD](https://github.com/sponsors/BryanFRD).
+
 ---
 
 <div align="center">
