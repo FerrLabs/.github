@@ -50,6 +50,8 @@ on:
         required: false
       FERRLABS_DISPATCH_TOKEN:
         required: false
+      TAG_SIGNING_KEY:
+        required: false
 
 concurrency:
   group: reusable-ferrflow-release-${{ github.workflow }}-${{ github.ref }}
@@ -81,7 +83,7 @@ jobs:
       # repo has a Cargo.toml.
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-      - uses: FerrLabs/FerrFlow@544e865a6398387633e3f991e6138e59416b726d # v7.21.7
+      - uses: FerrLabs/FerrFlow@c2f21ae68fc16172d1bb123100d65dc041feb2a3 # v7.25.0
         env:
           # Lets cargo-based postBump hooks read the private Kellnr index.
           # Empty (and unused) for repos that don't consume Kellnr.
@@ -91,6 +93,13 @@ jobs:
           dry_run: ${{ inputs.dry-run }}
           force_version: ${{ inputs.force-version }}
           bot: true
+          # Signs the release tag. ferrflow[bot] cannot: an App holds no key,
+          # and GitHub signs the commits it creates through its API but never
+          # a tag object. Empty in a repo the org secret does not reach, and
+          # the action then skips signing rather than failing the release.
+          tag_signing_key: ${{ secrets.TAG_SIGNING_KEY }}
+          tag_signing_name: ${{ vars.TAG_SIGNING_NAME }}
+          tag_signing_email: ${{ vars.TAG_SIGNING_EMAIL }}
 
   publish:
     name: Publish with FerrFlow
@@ -114,7 +123,7 @@ jobs:
       # private Kellnr index for dependency metadata).
       - if: ${{ hashFiles('**/Cargo.toml') != '' }}
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-      - uses: FerrLabs/FerrFlow@544e865a6398387633e3f991e6138e59416b726d # v7.21.7
+      - uses: FerrLabs/FerrFlow@c2f21ae68fc16172d1bb123100d65dc041feb2a3 # v7.25.0
         env:
           CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_FERRLABS_REGISTRY_TOKEN }}
