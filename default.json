@@ -166,8 +166,6 @@
         "minor"
       ],
       "minimumReleaseAge": "1 day",
-      "prCreation": "not-pending",
-      "internalChecksAsSuccess": true,
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash"
@@ -237,8 +235,6 @@
         "minor"
       ],
       "minimumReleaseAge": "1 day",
-      "prCreation": "not-pending",
-      "internalChecksAsSuccess": true,
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash"
