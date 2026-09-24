@@ -1,0 +1,155 @@
+name: Reusable — Fuzz Rust
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Crate root that owns the fuzz directory'
+        type: string
+        default: '.'
+      fuzz-directory:
+        description: 'cargo-fuzz project, relative to working-directory'
+        type: string
+        default: 'fuzz'
+      targets:
+        description: 'Space-separated fuzz targets. Empty runs every target `cargo fuzz list` reports.'
+        type: string
+        default: ''
+      max-total-time:
+        description: 'Seconds each target is fuzzed for. 45 to 60 keeps a pull request honest; a nightly run wants hundreds.'
+        type: number
+        default: 60
+      runner:
+        description: 'Override the runner label. Empty auto-selects by repo visibility, as the other reusables do.'
+        type: string
+        default: ''
+      rust-toolchain:
+        description: 'Toolchain to fuzz with. cargo-fuzz needs a nightly for -Z sanitizer, so a stable value fails. Every cargo call is toolchain-qualified, so a repo pinning stable in rust-toolchain.toml does not silently win.'
+        type: string
+        default: 'nightly'
+      sanitizer:
+        description: 'address, none, memory, thread or leak. Rust catches most memory errors at compile time, so `none` is a reasonable trade for speed on a pull request.'
+        type: string
+        default: 'address'
+      seeds-directory:
+        description: 'Committed seed inputs, relative to fuzz-directory, one subdirectory per target. Skipped when absent.'
+        type: string
+        default: 'seeds'
+      cache-corpus:
+        description: 'Carry the corpus between runs. Off means every run restarts from the seeds, which finds far less. The cache key carries the run id so the entry is always new and always saved, and the corpus is read back through the key prefix.'
+        type: boolean
+        default: true
+      timeout-minutes:
+        description: 'Job timeout. Must exceed targets x max-total-time plus the build.'
+        type: number
+        default: 30
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: ${{ inputs.working-directory }}/${{ inputs.fuzz-directory }}
+          cache-targets: ${{ runner.environment == 'github-hosted' }}
+
+      - uses: taiki-e/install-action@76c2e6406e52637deed7160d77bded76bd83e06e # v2.87.14
+        with:
+          tool: cargo-fuzz
+
+      - name: Resolve the targets
+        id: targets
+        env:
+          FUZZ_DIR: ${{ inputs.fuzz-directory }}
+          INPUT_TARGETS: ${{ inputs.targets }}
+          TOOLCHAIN: ${{ inputs.rust-toolchain }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -d "$FUZZ_DIR" ]; then
+            echo "::error::no cargo-fuzz project at $FUZZ_DIR. Create one with \`cargo fuzz init\`."
+            exit 1
+          fi
+
+          targets="$INPUT_TARGETS"
+          if [ -z "$targets" ]; then
+            targets="$(cargo "+${TOOLCHAIN}" fuzz list --fuzz-dir "$FUZZ_DIR" | tr '\n' ' ')"
+          fi
+
+          if [ -z "${targets// /}" ]; then
+            echo "::error::$FUZZ_DIR declares no fuzz targets"
+            exit 1
+          fi
+
+          echo "list=$targets" >> "$GITHUB_OUTPUT"
+          echo "Fuzzing: $targets"
+
+      - name: Corpus
+        if: inputs.cache-corpus
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ${{ inputs.working-directory }}/${{ inputs.fuzz-directory }}/corpus
+          key: fuzz-corpus-${{ github.repository }}-${{ inputs.working-directory }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ github.repository }}-${{ inputs.working-directory }}-
+
+      - name: Fuzz
+        env:
+          FUZZ_DIR: ${{ inputs.fuzz-directory }}
+          SEEDS_DIR: ${{ inputs.seeds-directory }}
+          SANITIZER: ${{ inputs.sanitizer }}
+          MAX_TOTAL_TIME: ${{ inputs.max-total-time }}
+          TARGETS: ${{ steps.targets.outputs.list }}
+          TOOLCHAIN: ${{ inputs.rust-toolchain }}
+        run: |
+          set -uo pipefail
+
+          status=0
+          for target in $TARGETS; do
+            echo "::group::$target"
+
+            corpus="$FUZZ_DIR/corpus/$target"
+            mkdir -p "$corpus"
+
+            seeds=""
+            if [ -d "$FUZZ_DIR/$SEEDS_DIR/$target" ]; then
+              seeds="$FUZZ_DIR/$SEEDS_DIR/$target"
+            fi
+
+            if ! cargo "+${TOOLCHAIN}" fuzz run \
+                 --fuzz-dir "$FUZZ_DIR" \
+                 --sanitizer "$SANITIZER" \
+                 "$target" "$corpus" $seeds \
+                 -- -max_total_time="$MAX_TOTAL_TIME" -print_final_stats=1; then
+              echo "::error title=$target::the fuzzer stopped on a failing input"
+              status=1
+            fi
+
+            echo "::endgroup::"
+          done
+
+          exit $status
+
+      - name: Failing inputs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: fuzz-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ inputs.working-directory }}/${{ inputs.fuzz-directory }}/artifacts
+          if-no-files-found: ignore
+          retention-days: 30
