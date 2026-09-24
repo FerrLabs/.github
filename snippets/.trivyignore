@@ -1,3 +1,8 @@
-# Trivy vulnerability IDs to ignore (with a written-out reason).
-# Format: <CVE-id>  # exp:YYYY-MM-DD reason
-# The expiry date is enforced manually — re-evaluate ignored CVEs at every renewal.
+# Trivy vulnerability IDs to waive, one per line, each with a reason above it.
+# `exp:YYYY-MM-DD` is read by Trivy itself: past that date the waiver stops
+# applying and the scan fails again, so nothing stays ignored by accident.
+#
+# Passed to the reusable Docker build with `trivyignores: <path to this file>`.
+#
+# Base image tzdata, upstream fix not in the base yet.
+# CVE-2026-0000 exp:2026-12-31
