@@ -443,7 +443,8 @@ jobs:
             fi
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+      - name: Trivy (SARIF)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         # Authenticate the Trivy DB pull from ghcr.io/aquasecurity/trivy-db.
         # trivy-action already caches the DB (keyed by date), but on the first
         # scan of the day two images releasing in parallel (App + Render) both
@@ -464,11 +465,11 @@ jobs:
           severity: ${{ inputs.trivy-severity }}
           ignore-unfixed: true
           trivyignores: ${{ inputs.trivyignores }}
-          exit-code: ${{ inputs.trivy-exit-code }}
+          exit-code: '0'
       - name: Upload SARIF
         # Best-effort: code scanning upload needs GitHub Advanced Security,
         # which isn't available on private repos without a GHAS licence. The
-        # real gate is trivy's exit-code:1 above; don't fail the build just
+        # real gate is the Trivy (gate) step below; don't fail the build just
         # because the Security-tab integration is unavailable.
         if: always()
         continue-on-error: true
@@ -476,6 +477,23 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
           category: trivy
+      - name: Trivy (gate)
+        # Its own scan because the SARIF one above cannot gate: trivy-action
+        # unsets TRIVY_SEVERITY whenever the format is SARIF, so that step's
+        # exit code tripped on findings of any severity, an UNKNOWN tzdata
+        # update included. Table format keeps the severity filter and prints
+        # whatever tripped the gate into this step's log. The DB is local by now.
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ${{ inputs.image-name }}:${{ inputs.tag }}
+          format: table
+          severity: ${{ inputs.trivy-severity }}
+          ignore-unfixed: true
+          trivyignores: ${{ inputs.trivyignores }}
+          exit-code: ${{ inputs.trivy-exit-code }}
 
   cosign:
     name: cosign (sign + attest)
