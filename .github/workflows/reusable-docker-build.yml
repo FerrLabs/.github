@@ -524,10 +524,20 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Same rule as the coverage handoffs, but Syft generates and uploads in
+      # one step: generation stays fatal, only the upload is best-effort, since
+      # a build that already pushed and signed the image must not fail on it.
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           image: ${{ inputs.image-name }}@${{ needs.build.outputs.digest }}
           format: cyclonedx-json
           output-file: sbom.cdx.json
-          upload-artifact: true
+          upload-artifact: false
           upload-release-assets: false
+      - name: Upload SBOM
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sbom-${{ github.event.repository.name }}.cdx.json
+          path: sbom.cdx.json
+          retention-days: 14

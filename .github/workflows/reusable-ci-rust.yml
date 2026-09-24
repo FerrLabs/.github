@@ -279,6 +279,8 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Hand coverage to the SonarQube job
         if: env.COVERAGE_IN_TEST == 'true' && inputs.enable-sonar
+        # Side output: losing the upload must not fail the gate that produced it.
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
@@ -303,6 +305,8 @@ jobs:
           ' lcov.info > "$OUT"
       - name: Upload rebased lcov
         if: env.COVERAGE_IN_TEST == 'true' && inputs.coverage-upload-as != ''
+        # Side output: losing the upload must not fail the gate that produced it.
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ inputs.coverage-upload-as }}
@@ -653,6 +657,8 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Hand coverage to the SonarQube job
         if: inputs.enable-sonar
+        # Side output: losing the upload must not fail the gate that produced it.
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sonar-coverage-${{ inputs.sonar-project-key || github.event.repository.name }}
@@ -681,6 +687,8 @@ jobs:
           ' lcov.info > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
       - name: Upload rebased lcov
         if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
+        # Side output: losing the upload must not fail the gate that produced it.
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ inputs.coverage-upload-as }}
