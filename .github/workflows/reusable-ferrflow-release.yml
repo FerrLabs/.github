@@ -34,13 +34,21 @@ on:
         default: false
       crates-io-trusted-publishing:
         description: >-
-          Authenticate crates.io publishes with a short-lived token minted from
-          this run's GitHub OIDC identity instead of `CARGO_FERRLABS_REGISTRY_TOKEN`.
-          Requires a Trusted Publishing config on **every** crate the repo
-          publishes (crates.io crate settings: this repository's owner and name,
-          and the caller workflow's filename, which is what GitHub puts in the
-          `workflow_ref` claim). A crate without a config is not in the minted
-          token's scope and its publish is refused.
+          Set this true in a repo that publishes crates to crates.io. The
+          publish then authenticates with a short-lived token minted from this
+          run's GitHub OIDC identity, and the org no longer holds a long-lived
+          registry token.
+
+          Every crate the repo publishes needs its own Trusted Publishing
+          config in its crates.io settings, carrying this repository's owner and
+          name, and the **caller** workflow's filename: crates.io reads the
+          `workflow_ref` claim, which GitHub sets to the workflow that started
+          the run, never the reusable one. One exchange covers every crate whose
+          config matches, and a crate without a config is outside the token's
+          scope, so its publish is refused.
+
+          Leave it false in a repo that publishes no crate: the exchange would
+          have no config to match and would fail the release.
         type: boolean
         required: false
         default: false
@@ -103,7 +111,7 @@ jobs:
           # Lets cargo-based postBump hooks read the private Kellnr index.
           # Empty (and unused) for repos that don't consume Kellnr.
           CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ inputs.crates-io-trusted-publishing && steps.crates-io-auth.outputs.token || secrets.CARGO_FERRLABS_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
         with:
           dry_run: ${{ inputs.dry-run }}
           force_version: ${{ inputs.force-version }}
@@ -149,7 +157,7 @@ jobs:
       - uses: FerrLabs/FerrFlow@c2f21ae68fc16172d1bb123100d65dc041feb2a3 # v7.25.0
         env:
           CARGO_REGISTRIES_KELLNR_TOKEN: ${{ secrets.CARGO_REGISTRIES_KELLNR_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ inputs.crates-io-trusted-publishing && steps.crates-io-auth.outputs.token || secrets.CARGO_FERRLABS_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
         with:
           mode: publish
           dry_run: ${{ inputs.dry-run }}
