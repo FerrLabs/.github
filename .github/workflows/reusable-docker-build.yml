@@ -56,6 +56,11 @@ on:
         type: string
         required: false
         default: '1'
+      trivyignores:
+        description: "Path, relative to the repository root, of a .trivyignore file listing CVE ids the scan waives (e.g. 'server/.trivyignore'). Only that file is checked out for the Trivy job. Give every entry an `exp:YYYY-MM-DD` so the waiver ends by itself. Empty = waive nothing."
+        type: string
+        required: false
+        default: ''
       push:
         description: 'Push the image to the registry'
         type: boolean
@@ -378,6 +383,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Only when a waiver file is asked for: the job otherwise never touches the
+      # repository, and a scan that needs no source should not pull any.
+      - name: Check out the Trivy ignore file
+        if: inputs.trivyignores != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+          sparse-checkout: ${{ inputs.trivyignores }}
+          sparse-checkout-cone-mode: false
       # The scan below emits SARIF, which is a file, and the Security tab that
       # would render it needs Advanced Security. A private repo without that
       # licence gets a no-op upload, so a failed scan blocked the build on a
@@ -400,6 +415,7 @@ jobs:
           output: trivy-report.txt
           severity: ${{ inputs.trivy-severity }}
           ignore-unfixed: true
+          trivyignores: ${{ inputs.trivyignores }}
           exit-code: '0'
       - name: Publish the CVE list
         if: always()
@@ -447,6 +463,7 @@ jobs:
           output: trivy-results.sarif
           severity: ${{ inputs.trivy-severity }}
           ignore-unfixed: true
+          trivyignores: ${{ inputs.trivyignores }}
           exit-code: ${{ inputs.trivy-exit-code }}
       - name: Upload SARIF
         # Best-effort: code scanning upload needs GitHub Advanced Security,
