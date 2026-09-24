@@ -524,7 +524,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        # Same rule as the coverage handoffs: the SBOM is generated either way,
+        # and losing its upload must not fail a build that already pushed and
+        # signed the image.
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        continue-on-error: true
         with:
           image: ${{ inputs.image-name }}@${{ needs.build.outputs.digest }}
           format: cyclonedx-json
