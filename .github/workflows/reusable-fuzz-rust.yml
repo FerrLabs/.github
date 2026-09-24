@@ -27,6 +27,10 @@ on:
         description: 'Toolchain to fuzz with. cargo-fuzz needs a nightly for -Z sanitizer, so a stable value fails. Every cargo call is toolchain-qualified, so a repo pinning stable in rust-toolchain.toml does not silently win.'
         type: string
         default: 'nightly'
+      target:
+        description: 'Target triple to build the fuzz targets for. Empty uses the toolchain host. cargo-fuzz otherwise defaults to the triple its own binary was built for, and install-action fetches a musl build through cargo-binstall, against which a sanitizer cannot link.'
+        type: string
+        default: ''
       sanitizer:
         description: 'address, none, memory, thread or leak. Rust catches most memory errors at compile time, so `none` is a reasonable trade for speed on a pull request.'
         type: string
@@ -80,6 +84,7 @@ jobs:
         env:
           FUZZ_DIR: ${{ inputs.fuzz-directory }}
           INPUT_TARGETS: ${{ inputs.targets }}
+          INPUT_TARGET: ${{ inputs.target }}
           TOOLCHAIN: ${{ inputs.rust-toolchain }}
         run: |
           set -euo pipefail
@@ -99,8 +104,19 @@ jobs:
             exit 1
           fi
 
+          triple="$INPUT_TARGET"
+          if [ -z "$triple" ]; then
+            triple="$(rustc "+${TOOLCHAIN}" -vV | sed -n 's/^host: //p')"
+          fi
+
+          if [ -z "$triple" ]; then
+            echo "::error::could not read the host triple from rustc -vV"
+            exit 1
+          fi
+
           echo "list=$targets" >> "$GITHUB_OUTPUT"
-          echo "Fuzzing: $targets"
+          echo "triple=$triple" >> "$GITHUB_OUTPUT"
+          echo "Fuzzing $targets for $triple"
 
       - name: Corpus
         if: inputs.cache-corpus
@@ -117,6 +133,7 @@ jobs:
           SANITIZER: ${{ inputs.sanitizer }}
           MAX_TOTAL_TIME: ${{ inputs.max-total-time }}
           TARGETS: ${{ steps.targets.outputs.list }}
+          TRIPLE: ${{ steps.targets.outputs.triple }}
           TOOLCHAIN: ${{ inputs.rust-toolchain }}
         run: |
           set -uo pipefail
@@ -135,6 +152,7 @@ jobs:
 
             if ! cargo "+${TOOLCHAIN}" fuzz run \
                  --fuzz-dir "$FUZZ_DIR" \
+                 --target "$TRIPLE" \
                  --sanitizer "$SANITIZER" \
                  "$target" "$corpus" $seeds \
                  -- -max_total_time="$MAX_TOTAL_TIME" -print_final_stats=1; then
