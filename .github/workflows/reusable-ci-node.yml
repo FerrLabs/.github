@@ -48,13 +48,13 @@ on:
         type: boolean
         default: true
       registry-url:
-        description: 'npm registry URL for scoped packages'
+        description: 'npm registry URL for scoped packages, empty for npmjs.org'
         type: string
-        default: 'https://npm.pkg.github.com'
+        default: ''
       registry-scope:
         description: 'Scope to attach to the registry (e.g. @ferrlabs)'
         type: string
-        default: '@ferrlabs'
+        default: ''
       typecheck-script:
         description: 'Script name for typecheck (in package.json)'
         type: string
