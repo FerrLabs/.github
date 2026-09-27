@@ -33,12 +33,14 @@ Hosting the reusables in the **public** `.github` repo (rather than the private 
 - Pinned major versions for trusted official actions (`actions/checkout@v6`, `dtolnay/rust-toolchain@stable`, etc.).
 - Coverage is uploaded to Codecov when `CODECOV_TOKEN` is set; failures are non-blocking.
 - All security templates upload SARIF to the GitHub code-scanning UI.
+- `@ferrlabs/*` packages come from npmjs.org with no token. A repo moving to these templates from GitHub Packages drops the `@ferrlabs` registry and `_authToken` lines from its `.npmrc` too, otherwise the token expands to an empty string and installs fail with a 401.
 
 ## Required secrets per template
 
 | Template | Secret | Required? |
 |---|---|---|
 | `ci-rust`, `ci-node`, `ci-go` | `CODECOV_TOKEN` | Optional |
+| `ci-node`, `ci-astro` | `FERRLABS_PACKAGES_READ` | Required only when the caller passes `registry-url` for a private registry |
 | `ci-astro` | `LHCI_GITHUB_APP_TOKEN` | Optional (Lighthouse comments on PRs) |
 | `security-scan` | `GITLEAKS_LICENSE` | Required for orgs with >25 contributors |
 | `release` | `FERRLABS_BOT_*` (FerrFlow OIDC) | Configured org-wide |
