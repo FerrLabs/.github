@@ -39,7 +39,6 @@ Hosting the reusables in the **public** `.github` repo (rather than the private 
 | Template | Secret | Required? |
 |---|---|---|
 | `ci-rust`, `ci-node`, `ci-go` | `CODECOV_TOKEN` | Optional |
-| `ci-node`, `ci-astro` | `FERRLABS_PACKAGES_READ` | Required if the repo consumes private `@ferrlabs/*` packages |
 | `ci-astro` | `LHCI_GITHUB_APP_TOKEN` | Optional (Lighthouse comments on PRs) |
 | `security-scan` | `GITLEAKS_LICENSE` | Required for orgs with >25 contributors |
 | `release` | `FERRLABS_BOT_*` (FerrFlow OIDC) | Configured org-wide |

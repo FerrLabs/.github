@@ -23,11 +23,7 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-          registry-url: https://npm.pkg.github.com
-          scope: '@ferrlabs'
       - name: Install dependencies
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
       - name: Typecheck
         run: pnpm typecheck
@@ -54,11 +50,7 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-          registry-url: https://npm.pkg.github.com
-          scope: '@ferrlabs'
       - name: Install dependencies
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.GITHUB_TOKEN }}
         run: pnpm install --frozen-lockfile
       - name: knip (dead code, unused exports & deps)
         run: pnpm dlx knip --reporter compact

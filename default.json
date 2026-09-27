@@ -46,12 +46,9 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "description": "FerrLabs npm packages — trust them, scan often, merge without delay. Override registry to GHCR (npm.pkg.github.com) since these packages aren't on npmjs.org. Auth comes from RENOVATE_HOST_RULES set by the in-cluster runner (FerrLabs/Infra, platform/renovate/run.mjs). internalChecksFilter:none skips the stability-days gate inherited from the global default. In practice this rule is belt-and-braces for the registry: each consuming repo's `.npmrc` already carries `@ferrlabs:registry=https://npm.pkg.github.com`, so the lookup resolves without it — the rule is what supplies the automerge/schedule policy.",
+      "description": "FerrLabs npm packages: trust them, scan often, merge without delay. They are public on npmjs.org since FerrLabs/UI#597, so no registry override and no auth. internalChecksFilter:none skips the stability-days gate inherited from the global default.",
       "matchPackageNames": [
         "/^@ferrlabs\\//"
-      ],
-      "registryUrls": [
-        "https://npm.pkg.github.com"
       ],
       "schedule": [
         "* * * * *"

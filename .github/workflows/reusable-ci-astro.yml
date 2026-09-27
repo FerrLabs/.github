@@ -31,10 +31,10 @@ on:
         default: ''
       registry-url:
         type: string
-        default: 'https://npm.pkg.github.com'
+        default: ''
       registry-scope:
         type: string
-        default: '@ferrlabs'
+        default: ''
       astro-check-args:
         description: 'Extra args for astro check'
         type: string
