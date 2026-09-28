@@ -206,12 +206,12 @@
       "groupName": "FerrLabs actions (weekly)"
     },
     {
-      "description": "Dockerfile base images — wait 3 days, grouped + auto-merge weekly",
+      "description": "Dockerfile base images: wait 3 days, grouped, auto-merged, taken on Mondays. The window is the whole day: with only the runs before 6am, a repository the job did not reach in that slot, or an image rebuilt late in the week, waited another week, and no Docker update landed in the org between mid-July and late September.",
       "matchManagers": [
         "dockerfile"
       ],
       "schedule": [
-        "before 6am on monday"
+        "on monday"
       ],
       "minimumReleaseAge": "3 days",
       "automerge": true,
