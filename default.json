@@ -46,7 +46,7 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "description": "FerrLabs npm packages: trust them, scan often, merge without delay. They are public on npmjs.org since FerrLabs/UI#597, so no registry override and no auth. internalChecksFilter:none skips the stability-days gate inherited from the global default.",
+      "description": "FerrLabs npm packages: trust them, scan often, merge without delay. They are public on npmjs.org since FerrLabs/UI#597, so no registry override and no auth. internalChecksFilter:none skips the stability-days gate inherited from the global default. rangeStrategy:bump and semanticCommitType:fix make a bump ship: an in-range update used to touch only the root lockfile under chore(deps), which FerrFlow attributes to no package and releases for no one, so ferrflow.com sat on ui-ng 1.40.0 while main had locked 1.43.0. Writing the new floor into the consumer's package.json puts the change inside the package path, and fix cuts its release.",
       "matchPackageNames": [
         "/^@ferrlabs\\//"
       ],
@@ -58,6 +58,8 @@
       "automerge": true,
       "automergeType": "pr",
       "automergeStrategy": "squash",
+      "rangeStrategy": "bump",
+      "semanticCommitType": "fix",
       "groupName": "FerrLabs npm packages"
     },
     {
