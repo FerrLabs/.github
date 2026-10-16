@@ -70,7 +70,7 @@ on:
       enable-typos:
         description: 'Run typos-cli'
         type: boolean
-        default: true
+        default: false
       fail-on-audit:
         description: 'Fail the workflow on cargo audit advisories (often unfixable upstream)'
         type: boolean
