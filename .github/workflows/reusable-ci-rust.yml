@@ -32,7 +32,7 @@ on:
         type: string
         default: ''
       coverage-flags:
-        description: 'Flags for the coverage run (llvm-cov). Defaults to cargo-flags. Set separately when cargo-flags already carries --workspace, to avoid passing it twice to llvm-cov which rejects duplicates.'
+        description: 'Flags for the coverage run (llvm-cov). Defaults to cargo-flags. Any --workspace in the flags is dropped, since the coverage run always passes it.'
         type: string
         default: ''
       clippy-args:
@@ -263,7 +263,7 @@ jobs:
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
           COVERAGE_FLAGS: ${{ inputs.coverage-flags || inputs.cargo-flags }}
-        run: cargo llvm-cov --locked $COVERAGE_FLAGS --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov --locked ${COVERAGE_FLAGS//--workspace/} --workspace --lcov --output-path lcov.info
       - name: Doctests
         if: env.COVERAGE_IN_TEST == 'true' && !contains(inputs.cargo-flags, '--all-targets') && !contains(inputs.test-args, '--lib')
         env:
@@ -641,7 +641,7 @@ jobs:
         env:
           FERRFLOW_HMAC_SECRET: ${{ secrets.FERRFLOW_HMAC_SECRET }}
           COVERAGE_FLAGS: ${{ inputs.coverage-flags || inputs.cargo-flags }}
-        run: cargo llvm-cov --locked $COVERAGE_FLAGS --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov --locked ${COVERAGE_FLAGS//--workspace/} --workspace --lcov --output-path lcov.info
       - name: Generate coverage (tarpaulin)
         if: inputs.coverage-tool == 'tarpaulin'
         env:
