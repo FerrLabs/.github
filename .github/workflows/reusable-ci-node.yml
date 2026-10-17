@@ -284,6 +284,10 @@ jobs:
             echo "::warning title=Dependency audit skipped::The npm registry retired the legacy audit endpoints on 2026-07-15, and pnpm only queries the replacement bulk advisory endpoint from v11 onwards. This step cannot gate anything until this repo moves to pnpm 11, so it is reporting a warning instead of failing. Dependency CVEs are still surfaced (advisory-only) by osv-scanner in the security-scan workflow. See https://github.com/pnpm/pnpm/issues/11265"
             exit 0
           fi
+          if [ "$EXIT" -ne 0 ] && printf '%s' "$OUT" | grep -q 'security/advisories/bulk'; then
+            echo "::warning title=Dependency audit skipped::The npm bulk advisory endpoint failed (service error, not a vulnerability report), so this run could not gate on the audit. Dependency CVEs are still surfaced (advisory-only) by osv-scanner in the security-scan workflow."
+            exit 0
+          fi
           exit $EXIT
 
   sonarqube:
