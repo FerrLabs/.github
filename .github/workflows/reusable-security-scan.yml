@@ -95,6 +95,10 @@ on:
         type: boolean
         required: false
         default: true
+    secrets:
+      SNYK_TOKEN:
+        description: 'Snyk API token. Without it the Snyk job skips.'
+        required: false
 
 concurrency:
   group: reusable-security-scan-${{ github.workflow }}-${{ github.ref }}
