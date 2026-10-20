@@ -132,6 +132,9 @@ on:
       sccache-s3-secret:
         description: 'garage S3 secret key (SCCACHE_S3_SECRET). Pair of sccache-s3-key; both must be set for the cache to be wired in.'
         required: false
+      maxmind-license-key:
+        description: 'MaxMind license key, to bake GeoLite2 into the image. Exposed as a build secret (id=maxmind-license-key), never as a build-arg, so it stays out of the image history and provenance. In the Dockerfile: RUN --mount=type=secret,id=maxmind-license-key sh -c ''KEY="$(cat /run/secrets/maxmind-license-key)" ...''; the Dockerfile must degrade gracefully when it is absent.'
+        required: false
 
 concurrency:
   group: reusable-docker-build-${{ inputs.image-name }}-${{ github.workflow }}-${{ github.ref }}
@@ -220,6 +223,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.cargo-registry-token }}
           SCCACHE_S3_KEY: ${{ secrets.sccache-s3-key }}
           SCCACHE_S3_SECRET: ${{ secrets.sccache-s3-secret }}
+          MAXMIND_LICENSE_KEY: ${{ secrets.maxmind-license-key }}
           SCCACHE_GHA: ${{ inputs.sccache-gha }}
           CACHE: ${{ inputs.cache }}
           CACHE_TTL: ${{ inputs.cache-ttl }}
@@ -253,6 +257,11 @@ jobs:
             secret_args+=(--secret "id=sccache-s3-key,src=$RUNNER_TEMP/sccache-s3-key")
             secret_args+=(--secret "id=sccache-s3-secret,src=$RUNNER_TEMP/sccache-s3-secret")
             echo "sccache credentials passed to the build"
+          fi
+
+          if [ -n "${MAXMIND_LICENSE_KEY:-}" ]; then
+            printf '%s' "$MAXMIND_LICENSE_KEY" > "$RUNNER_TEMP/maxmind-license-key"
+            secret_args+=(--secret "id=maxmind-license-key,src=$RUNNER_TEMP/maxmind-license-key")
           fi
 
           build_arg_args=()
