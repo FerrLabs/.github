@@ -121,8 +121,11 @@ jobs:
         run: |
           VERSION=8.21.2
           mkdir -p "$RUNNER_TEMP/bin"
+          SHA256=5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
           curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
-            | tar -xz -C "$RUNNER_TEMP/bin" gitleaks
+            -o "$RUNNER_TEMP/gitleaks.tar.gz"
+          echo "$SHA256  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xz -C "$RUNNER_TEMP/bin" -f "$RUNNER_TEMP/gitleaks.tar.gz" gitleaks
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bin/gitleaks" version
       - name: Run gitleaks
@@ -172,6 +175,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bin"
           curl -fsSL "https://github.com/google/osv-scanner/releases/download/v${VERSION}/osv-scanner_linux_amd64" \
             -o "$RUNNER_TEMP/bin/osv-scanner"
+          echo "3abcfd7126c453a00421487e721b296e0cb68085bd431d6cef60872774170fc8  $RUNNER_TEMP/bin/osv-scanner" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/bin/osv-scanner"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bin/osv-scanner" --version
@@ -214,6 +218,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bin"
           curl -fsSL "https://github.com/opengrep/opengrep/releases/download/v${VERSION}/opengrep_manylinux_x86" \
             -o "$RUNNER_TEMP/bin/opengrep"
+          echo "57a5a7fcc2df876e02f606fd86841078ee6f15c7deb115a7929228c3eaa99273  $RUNNER_TEMP/bin/opengrep" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/bin/opengrep"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bin/opengrep" --version
@@ -232,7 +237,7 @@ jobs:
           DEST="$RUNNER_TEMP/opengrep-rules"
           mkdir -p "$DEST"
           TARBALL="$RUNNER_TEMP/opengrep-rules.tar.gz"
-          curl -fsSL -o "$TARBALL" https://codeload.github.com/opengrep/opengrep-rules/tar.gz/refs/heads/main
+          curl -fsSL -o "$TARBALL" https://codeload.github.com/opengrep/opengrep-rules/tar.gz/f1d2b562b414783763fd02a6ed2736eaed622efa
           tar -xzf "$TARBALL" -C "$DEST" --strip-components=1
           echo "path=$DEST" >> "$GITHUB_OUTPUT"
       - name: Fetch the FerrLabs ruleset
@@ -344,8 +349,12 @@ jobs:
       - name: Install trufflehog
         run: |
           mkdir -p "$RUNNER_TEMP/bin"
-          curl -fsSL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh \
-            | sh -s -- -b "$RUNNER_TEMP/bin"
+          VERSION=3.99.7
+          SHA256=bdbea0508e439b144f49de14e775908de5f902f3d14ea7ae8354bae72b0b72ef
+          curl -fsSL "https://github.com/trufflesecurity/trufflehog/releases/download/v${VERSION}/trufflehog_${VERSION}_linux_amd64.tar.gz" \
+            -o "$RUNNER_TEMP/trufflehog.tar.gz"
+          echo "$SHA256  $RUNNER_TEMP/trufflehog.tar.gz" | sha256sum -c -
+          tar -xz -C "$RUNNER_TEMP/bin" -f "$RUNNER_TEMP/trufflehog.tar.gz" trufflehog
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bin/trufflehog" --version
       - name: Run trufflehog (filesystem + git history)
