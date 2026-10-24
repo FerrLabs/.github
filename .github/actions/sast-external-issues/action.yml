@@ -51,15 +51,20 @@ runs:
   steps:
     - name: Install OpenGrep + gitleaks
       shell: bash
+      env:
+        OPENGREP_VERSION: ${{ inputs.opengrep-version }}
+        OPENGREP_SHA256: ${{ inputs.opengrep-sha256 }}
+        GITLEAKS_VERSION: ${{ inputs.gitleaks-version }}
+        GITLEAKS_SHA256: ${{ inputs.gitleaks-sha256 }}
       run: |
         set -euo pipefail
         mkdir -p "$RUNNER_TEMP/sast-bin"
-        curl -fsSL "https://github.com/opengrep/opengrep/releases/download/v${{ inputs.opengrep-version }}/opengrep_manylinux_x86" \
+        curl -fsSL "https://github.com/opengrep/opengrep/releases/download/v${OPENGREP_VERSION}/opengrep_manylinux_x86" \
           -o "$RUNNER_TEMP/sast-bin/opengrep"
-        echo "${{ inputs.opengrep-sha256 }}  $RUNNER_TEMP/sast-bin/opengrep" | sha256sum -c -
-        curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${{ inputs.gitleaks-version }}/gitleaks_${{ inputs.gitleaks-version }}_linux_x64.tar.gz" \
+        echo "$OPENGREP_SHA256  $RUNNER_TEMP/sast-bin/opengrep" | sha256sum -c -
+        curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
           -o "$RUNNER_TEMP/gitleaks.tar.gz"
-        echo "${{ inputs.gitleaks-sha256 }}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+        echo "$GITLEAKS_SHA256  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
         tar -xz -C "$RUNNER_TEMP/sast-bin" -f "$RUNNER_TEMP/gitleaks.tar.gz" gitleaks
         chmod +x "$RUNNER_TEMP/sast-bin/opengrep" "$RUNNER_TEMP/sast-bin/gitleaks"
         echo "$RUNNER_TEMP/sast-bin" >> "$GITHUB_PATH"
