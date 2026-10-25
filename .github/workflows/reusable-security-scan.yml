@@ -188,14 +188,17 @@ jobs:
           echo '{"runs":[{"tool":{"driver":{"name":"osv-scanner","informationUri":"https://osv.dev"}},"results":[]}],"$schema":"https://json.schemastore.org/sarif-2.1.0.json","version":"2.1.0"}' > osv-results.sarif
       - name: Run osv-scanner
         if: steps.detect.outputs.has_go == 'false'
+        env:
+          OSV_SCAN_ARGS: ${{ inputs.osv-scan-args }}
+          FAIL_ON_CVE: ${{ inputs.fail-on-cve }}
         run: |
           set +e
           osv-scanner scan source \
             --output=osv-results.sarif --format=sarif \
-            ${{ inputs.osv-scan-args }}
+            $OSV_SCAN_ARGS
           EXIT=$?
           set -e
-          if [ "${{ inputs.fail-on-cve }}" = "true" ]; then
+          if [ "$FAIL_ON_CVE" = "true" ]; then
             exit $EXIT
           fi
       - name: Upload SARIF
@@ -262,6 +265,7 @@ jobs:
       - name: Run OpenGrep
         env:
           FERRLABS_RULES: ${{ steps.ferrlabs-rules.outputs.path }}
+          RULES_PATH: ${{ steps.rules.outputs.path }}
         run: |
           set +e
           EXTRA=()
@@ -271,7 +275,7 @@ jobs:
           opengrep scan \
             --sarif-output=opengrep.sarif \
             --error \
-            -f "${{ steps.rules.outputs.path }}" \
+            -f "$RULES_PATH" \
             "${EXTRA[@]}" \
             .
           EXIT=$?
@@ -406,9 +410,10 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TEST_ARGS: ${{ inputs.snyk-test-args }}
         run: |
           set +e
-          OUT=$(snyk test ${{ inputs.snyk-test-args }} --sarif-file-output=snyk.sarif 2>&1)
+          OUT=$(snyk test $SNYK_TEST_ARGS --sarif-file-output=snyk.sarif 2>&1)
           EXIT=$?
           set -e
           echo "$OUT"
