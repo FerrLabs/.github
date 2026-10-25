@@ -24,10 +24,18 @@ inputs:
     description: 'Pinned OpenGrep release version.'
     required: false
     default: '1.9.0'
+  opengrep-sha256:
+    description: 'SHA256 of the opengrep_manylinux_x86 asset for opengrep-version.'
+    required: false
+    default: '57a5a7fcc2df876e02f606fd86841078ee6f15c7deb115a7929228c3eaa99273'
   gitleaks-version:
     description: 'Pinned gitleaks release version (kept in sync with reusable-security-scan).'
     required: false
     default: '8.21.2'
+  gitleaks-sha256:
+    description: 'SHA256 of the gitleaks_<version>_linux_x64.tar.gz asset for gitleaks-version.'
+    required: false
+    default: '5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba'
   output-file:
     description: 'Report path, relative to working-directory, for the generic issue JSON.'
     required: false
@@ -45,14 +53,19 @@ runs:
       shell: bash
       env:
         OPENGREP_VERSION: ${{ inputs.opengrep-version }}
+        OPENGREP_SHA256: ${{ inputs.opengrep-sha256 }}
         GITLEAKS_VERSION: ${{ inputs.gitleaks-version }}
+        GITLEAKS_SHA256: ${{ inputs.gitleaks-sha256 }}
       run: |
         set -euo pipefail
         mkdir -p "$RUNNER_TEMP/sast-bin"
         curl -fsSL "https://github.com/opengrep/opengrep/releases/download/v${OPENGREP_VERSION}/opengrep_manylinux_x86" \
           -o "$RUNNER_TEMP/sast-bin/opengrep"
+        echo "$OPENGREP_SHA256  $RUNNER_TEMP/sast-bin/opengrep" | sha256sum -c -
         curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-          | tar -xz -C "$RUNNER_TEMP/sast-bin" gitleaks
+          -o "$RUNNER_TEMP/gitleaks.tar.gz"
+        echo "$GITLEAKS_SHA256  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+        tar -xz -C "$RUNNER_TEMP/sast-bin" -f "$RUNNER_TEMP/gitleaks.tar.gz" gitleaks
         chmod +x "$RUNNER_TEMP/sast-bin/opengrep" "$RUNNER_TEMP/sast-bin/gitleaks"
         echo "$RUNNER_TEMP/sast-bin" >> "$GITHUB_PATH"
 

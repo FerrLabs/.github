@@ -167,6 +167,7 @@ jobs:
         run: |
           curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 \
             -o "${RUNNER_TEMP}/hadolint"
+          echo "56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010  ${RUNNER_TEMP}/hadolint" | sha256sum -c -
           chmod +x "${RUNNER_TEMP}/hadolint"
           # DL3008 (apt) / DL3018 (apk): pinning OS package versions is
           # impractical — Debian/Alpine point releases supersede them and exact
@@ -528,6 +529,7 @@ jobs:
         run: |
           curl -fsSL https://github.com/sigstore/cosign/releases/download/v2.4.1/cosign-linux-amd64 \
             -o "${RUNNER_TEMP}/cosign"
+          echo "8b24b946dd5809c6bd93de08033bcf6bc0ed7d336b7785787c080f574b89249b  ${RUNNER_TEMP}/cosign" | sha256sum -c -
           chmod +x "${RUNNER_TEMP}/cosign"
           echo "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
       - name: Login to GHCR
