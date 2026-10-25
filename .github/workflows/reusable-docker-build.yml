@@ -161,6 +161,9 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
       - name: Lint Dockerfile (hadolint)
+        env:
+          CONTEXT: ${{ inputs.context }}
+          DOCKERFILE: ${{ inputs.dockerfile }}
         run: |
           curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 \
             -o "${RUNNER_TEMP}/hadolint"
@@ -170,7 +173,7 @@ jobs:
           # pins break the build. Every other warning still fails the gate.
           "${RUNNER_TEMP}/hadolint" --failure-threshold warning \
             --ignore DL3008 --ignore DL3018 \
-            "${{ inputs.context }}/${{ inputs.dockerfile }}"
+            "${CONTEXT}/${DOCKERFILE}"
 
   build:
     name: Build & push
@@ -191,7 +194,8 @@ jobs:
         if: startsWith(inputs.image-name, 'ghcr.io/')
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: buildah login -u "${{ github.actor }}" --password-stdin ghcr.io <<< "$GHCR_TOKEN"
+          GHCR_USER: ${{ github.actor }}
+        run: buildah login -u "$GHCR_USER" --password-stdin ghcr.io <<< "$GHCR_TOKEN"
       # The Actions cache endpoint and token exist only inside a step's
       # environment. Exporting them here is what lets the build reach the cache;
       # they are handed to buildah as build secrets, never as build-args, so
@@ -536,9 +540,11 @@ jobs:
       - name: Sign image (keyless)
         env:
           COSIGN_EXPERIMENTAL: '1'
+          IMAGE_NAME: ${{ inputs.image-name }}
+          DIGEST: ${{ needs.build.outputs.digest }}
         run: |
           cosign sign --yes \
-            "${{ inputs.image-name }}@${{ needs.build.outputs.digest }}"
+            "${IMAGE_NAME}@${DIGEST}"
       - name: Attest build provenance
         # Best-effort: GitHub artifact attestations are an org-plan feature
         # ("Feature not available for the … organization" otherwise). The

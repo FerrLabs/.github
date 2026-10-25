@@ -107,8 +107,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - id: check
+        env:
+          GO_VERSION_FILE: ${{ inputs.go-version-file }}
         run: |
-          if [ -f "${{ inputs.go-version-file }}" ]; then
+          if [ -f "$GO_VERSION_FILE" ]; then
             echo "has_go=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_go=false" >> "$GITHUB_OUTPUT"
@@ -145,7 +147,9 @@ jobs:
           fi
       - name: go vet
         if: inputs.enable-vet
-        run: go vet ${{ inputs.test-paths }}
+        env:
+          TEST_PATHS: ${{ inputs.test-paths }}
+        run: go vet $TEST_PATHS
       - if: inputs.enable-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
@@ -173,11 +177,15 @@ jobs:
           go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
           cache: true
       - name: Test
+        env:
+          ENABLE_RACE: ${{ inputs.enable-race }}
+          ENABLE_COVERAGE: ${{ inputs.enable-coverage }}
+          TEST_PATHS: ${{ inputs.test-paths }}
         run: |
           ARGS=""
-          if [ "${{ inputs.enable-race }}" = "true" ]; then ARGS="$ARGS -race"; fi
-          if [ "${{ inputs.enable-coverage }}" = "true" ]; then ARGS="$ARGS -coverprofile=coverage.out"; fi
-          go test $ARGS ${{ inputs.test-paths }}
+          if [ "$ENABLE_RACE" = "true" ]; then ARGS="$ARGS -race"; fi
+          if [ "$ENABLE_COVERAGE" = "true" ]; then ARGS="$ARGS -coverprofile=coverage.out"; fi
+          go test $ARGS $TEST_PATHS
       - if: inputs.enable-coverage
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
@@ -230,13 +238,16 @@ jobs:
           go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
           cache: true
       - name: govulncheck
+        env:
+          TEST_PATHS: ${{ inputs.test-paths }}
+          FAIL_ON_VULNCHECK: ${{ inputs.fail-on-vulncheck }}
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           set +e
-          govulncheck ${{ inputs.test-paths }}
+          govulncheck $TEST_PATHS
           EXIT=$?
           set -e
-          if [ "${{ inputs.fail-on-vulncheck }}" = "true" ]; then
+          if [ "$FAIL_ON_VULNCHECK" = "true" ]; then
             exit $EXIT
           fi
           if [ "$EXIT" != "0" ]; then
@@ -266,7 +277,9 @@ jobs:
           go-version-file: ${{ inputs.go-version == '' && format('{0}/{1}', inputs.working-directory, inputs.go-version-file) || '' }}
           cache: true
       - name: Build
-        run: go build -o bin/ ${{ inputs.build-paths }}
+        env:
+          BUILD_PATHS: ${{ inputs.build-paths }}
+        run: go build -o bin/ $BUILD_PATHS
 
   sonarqube:
     name: SonarQube

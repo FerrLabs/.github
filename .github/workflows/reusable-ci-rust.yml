@@ -502,10 +502,13 @@ jobs:
           restore-keys: advisory-db-
       - name: cargo audit (RustSec advisories)
         if: inputs.enable-audit
+        env:
+          AUDIT_IGNORE: ${{ inputs.audit-ignore }}
+          FAIL_ON_AUDIT: ${{ inputs.fail-on-audit }}
         run: |
           IGNORES=""
-          if [ -n "${{ inputs.audit-ignore }}" ]; then
-            for id in $(echo "${{ inputs.audit-ignore }}" | tr ',' ' '); do
+          if [ -n "$AUDIT_IGNORE" ]; then
+            for id in $(echo "$AUDIT_IGNORE" | tr ',' ' '); do
               IGNORES="$IGNORES --ignore $id"
             done
           fi
@@ -513,7 +516,7 @@ jobs:
           cargo audit --deny warnings $IGNORES
           EXIT=$?
           set -e
-          if [ "${{ inputs.fail-on-audit }}" = "true" ]; then
+          if [ "$FAIL_ON_AUDIT" = "true" ]; then
             exit $EXIT
           fi
           if [ "$EXIT" != "0" ]; then
@@ -671,6 +674,7 @@ jobs:
         if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
         env:
           BASE: ${{ inputs.working-directory }}
+          COVERAGE_NAME: ${{ inputs.coverage-upload-as }}
         run: |
           mkdir -p "${{ runner.temp }}/sonarcov"
           # llvm-cov emits absolute SF: paths; strip $GITHUB_WORKSPACE to make them
@@ -684,7 +688,7 @@ jobs:
               print "SF:" p; next
             }
             { print }
-          ' lcov.info > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
+          ' lcov.info > "${{ runner.temp }}/sonarcov/${COVERAGE_NAME}.lcov"
       - name: Upload rebased lcov
         if: inputs.coverage-upload-as != '' && inputs.coverage-tool == 'llvm-cov'
         # Side output: losing the upload must not fail the gate that produced it.

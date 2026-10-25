@@ -135,16 +135,23 @@ jobs:
       - name: Install dependencies
         env:
           NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
-        run: pnpm install ${{ inputs.install-args }}
+          INSTALL_ARGS: ${{ inputs.install-args }}
+        run: pnpm install $INSTALL_ARGS
       - name: Astro check
         if: inputs.enable-astro-check
-        run: pnpm exec astro check ${{ inputs.astro-check-args }}
+        env:
+          ASTRO_CHECK_ARGS: ${{ inputs.astro-check-args }}
+        run: pnpm exec astro check $ASTRO_CHECK_ARGS
       - name: Lint
         if: inputs.enable-lint
-        run: pnpm run ${{ inputs.lint-script }}
+        env:
+          LINT_SCRIPT: ${{ inputs.lint-script }}
+        run: pnpm run "$LINT_SCRIPT"
       - name: Build
         if: inputs.enable-build
-        run: pnpm run ${{ inputs.build-script }}
+        env:
+          BUILD_SCRIPT: ${{ inputs.build-script }}
+        run: pnpm run "$BUILD_SCRIPT"
       - name: Upload dist (for downstream Lighthouse)
         if: inputs.enable-build && inputs.enable-lighthouse && (github.event_name == 'pull_request' || !inputs.lighthouse-only-pr)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -175,9 +182,12 @@ jobs:
       - name: Install dependencies
         env:
           NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
-        run: pnpm install ${{ inputs.install-args }}
+          INSTALL_ARGS: ${{ inputs.install-args }}
+        run: pnpm install $INSTALL_ARGS
       - name: Check i18n parity
-        run: pnpm run ${{ inputs.i18n-script }}
+        env:
+          I18N_SCRIPT: ${{ inputs.i18n-script }}
+        run: pnpm run "$I18N_SCRIPT"
         continue-on-error: true
 
   lighthouse:
@@ -197,9 +207,11 @@ jobs:
       - name: Run Lighthouse
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          LIGHTHOUSE_VERSION: ${{ inputs.lighthouse-version }}
+          DIST_PATH: ${{ inputs.dist-path }}
         run: |
-          npm install -g @lhci/cli@${{ inputs.lighthouse-version }}
-          lhci autorun --collect.staticDistDir=${{ inputs.dist-path }} || true
+          npm install -g "@lhci/cli@${LIGHTHOUSE_VERSION}"
+          lhci autorun --collect.staticDistDir="$DIST_PATH" || true
 
   sonarqube:
     name: SonarQube
