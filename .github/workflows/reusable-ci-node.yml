@@ -175,16 +175,27 @@ jobs:
       - name: Install dependencies
         env:
           NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
-        run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
+          PKG_MANAGER: ${{ inputs.package-manager }}
+          INSTALL_ARGS: ${{ inputs.install-args }}
+        run: $PKG_MANAGER install $INSTALL_ARGS
       - name: Typecheck
         if: inputs.enable-typecheck
-        run: ${{ inputs.script-runner }} ${{ inputs.typecheck-script }}
+        env:
+          SCRIPT_RUNNER: ${{ inputs.script-runner }}
+          TYPECHECK_SCRIPT: ${{ inputs.typecheck-script }}
+        run: $SCRIPT_RUNNER $TYPECHECK_SCRIPT
       - name: Lint
         if: inputs.enable-lint
-        run: ${{ inputs.script-runner }} ${{ inputs.lint-script }}
+        env:
+          SCRIPT_RUNNER: ${{ inputs.script-runner }}
+          LINT_SCRIPT: ${{ inputs.lint-script }}
+        run: $SCRIPT_RUNNER $LINT_SCRIPT
       - name: Test
         if: inputs.enable-test
-        run: ${{ inputs.script-runner }} ${{ inputs.test-script }}
+        env:
+          SCRIPT_RUNNER: ${{ inputs.script-runner }}
+          TEST_SCRIPT: ${{ inputs.test-script }}
+        run: $SCRIPT_RUNNER $TEST_SCRIPT
       - name: Upload coverage
         if: inputs.enable-test && inputs.coverage-upload
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -209,6 +220,7 @@ jobs:
         env:
           BASE: ${{ inputs.working-directory }}
           LCOV: ${{ inputs.sonar-lcov-path }}
+          COVERAGE_NAME: ${{ inputs.coverage-upload-as }}
         run: |
           mkdir -p "${{ runner.temp }}/sonarcov"
           # vitest emits SF: paths relative to the package dir; prefix the component
@@ -222,7 +234,7 @@ jobs:
               print "SF:" p; next
             }
             { print }
-          ' "$LCOV" > "${{ runner.temp }}/sonarcov/${{ inputs.coverage-upload-as }}.lcov"
+          ' "$LCOV" > "${{ runner.temp }}/sonarcov/${COVERAGE_NAME}.lcov"
       - name: Upload rebased lcov
         if: inputs.coverage-upload-as != '' && inputs.enable-test
         # Side output: losing the upload must not fail the gate that produced it.
@@ -235,7 +247,10 @@ jobs:
           retention-days: 1
       - name: Build
         if: inputs.enable-build
-        run: ${{ inputs.script-runner }} ${{ inputs.build-script }}
+        env:
+          SCRIPT_RUNNER: ${{ inputs.script-runner }}
+          BUILD_SCRIPT: ${{ inputs.build-script }}
+        run: $SCRIPT_RUNNER $BUILD_SCRIPT
 
   quality:
     name: Quality (knip, madge, audit)
@@ -260,14 +275,21 @@ jobs:
       - name: Install dependencies
         env:
           NODE_AUTH_TOKEN: ${{ secrets.FERRLABS_PACKAGES_READ || secrets.FERRFLOW_PACKAGES_READ || secrets.GITHUB_TOKEN }}
-        run: ${{ inputs.package-manager }} install ${{ inputs.install-args }}
+          PKG_MANAGER: ${{ inputs.package-manager }}
+          INSTALL_ARGS: ${{ inputs.install-args }}
+        run: $PKG_MANAGER install $INSTALL_ARGS
       - name: knip
         if: inputs.enable-knip
-        run: ${{ inputs.package-manager }} dlx knip --reporter compact
+        env:
+          PKG_MANAGER: ${{ inputs.package-manager }}
+        run: $PKG_MANAGER dlx knip --reporter compact
         continue-on-error: true
       - name: madge (circular imports)
         if: inputs.enable-madge
-        run: ${{ inputs.package-manager }} dlx madge --circular --extensions ts,tsx,js,jsx ${{ inputs.madge-paths }}
+        env:
+          PKG_MANAGER: ${{ inputs.package-manager }}
+          MADGE_PATHS: ${{ inputs.madge-paths }}
+        run: $PKG_MANAGER dlx madge --circular --extensions ts,tsx,js,jsx $MADGE_PATHS
         continue-on-error: true
       - name: audit
         if: inputs.enable-audit
