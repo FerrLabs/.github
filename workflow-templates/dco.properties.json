@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs — DCO sign-off",
+  "description": "Fails a PR when one of its commits has no Signed-off-by line. Fix with git rebase --signoff.",
+  "iconName": "ferrlabs",
+  "categories": ["Continuous integration"],
+  "filePatterns": [".*"]
+}
