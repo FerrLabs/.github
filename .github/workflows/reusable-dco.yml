@@ -1,0 +1,36 @@
+name: Reusable — DCO sign-off
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use ferrlabs-k8s-light, public repos use ubuntu-latest.'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  sign-off:
+    name: sign-off
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Every commit needs a Signed-off-by line
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=$(git log --no-merges --format='%H %s' --invert-grep --grep='^Signed-off-by: ' \
+            "origin/${BASE_REF}..${HEAD_SHA}")
+          if [ -n "$missing" ]; then
+            echo "Commits without a sign-off:"
+            echo "$missing"
+            echo "Run: git rebase --signoff origin/${BASE_REF}"
+            exit 1
+          fi
