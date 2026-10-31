@@ -1,11 +1,13 @@
 <div align="center">
 
-# FerrLabs `.github`
+<h1><img src=".github/logo.svg" alt="" width="48" height="48" align="absmiddle"> FerrLabs <code>.github</code></h1>
 
 **Organization-level defaults for every FerrLabs repository.**
 
 Community health files, the org profile, shared reusable workflows and config presets,<br />
 inherited automatically by any repo that does not ship its own version.
+
+[![License](https://img.shields.io/github/license/FerrLabs/.github)](LICENSE)
 
 [github.com/FerrLabs](https://github.com/FerrLabs)
 
@@ -16,8 +18,8 @@ inherited automatically by any repo that does not ship its own version.
 | Path | Purpose |
 |------|---------|
 | `profile/README.md` | The public [organization profile](https://github.com/FerrLabs) page. |
-| `.github/workflows/` | **Reusable workflows** (`reusable-ci-*`, `reusable-docker-build`, `reusable-release-rust`, `reusable-security-scan`, `reusable-sonarqube-scan`) called by repos via `workflow_call`. |
-| `workflow-templates/` | **Starter workflows** shown under *Actions → New workflow* (CI for Astro/Go/Node/Rust, CodeQL, docker-publish, release, scorecard, pr-title, security-scan), each with its `.properties.json`. |
+| `.github/workflows/` | **Reusable workflows** (`reusable-ci-*` for Astro, Go, Node and Rust, `reusable-dco`, `reusable-docker-build`, `reusable-ferrflow-release`, `reusable-fuzz-rust`, `reusable-pr-title`, `reusable-release-rust`, `reusable-security-scan`, `reusable-sonarqube-scan`) called by repos via `workflow_call`. |
+| `workflow-templates/` | **Starter workflows** shown under *Actions → New workflow* (CI for Astro/Go/Node/Rust, dco, docker-publish, release, sbom-track, scorecard, pr-title, security-scan), each with its `.properties.json`. |
 | `snippets/` | Config files to **copy into** repos: `CODEOWNERS`, `renovate.json`, `dependabot.yml`, `deny.toml`, `typos.toml`, `.gitleaksignore`, `.trivyignore`. Not inherited; these are templates to drop in. |
 | `default.json` / `renovate.json` | Shared **Renovate** config. `default.json` is the global config of the self-hosted Renovate (a CronJob in FerrLabs/Infra, `platform/renovate`); `renovate.json` is the org-wide preset. |
 | `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SUPPORT.md` | Community health files inherited org-wide. |
