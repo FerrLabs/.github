@@ -8,9 +8,13 @@ on:
         type: string
         default: '.'
       args:
-        description: 'Extra args for cargo kani'
+        description: 'Args for cargo kani, including the package scope. Replace --workspace with -p <crate> to narrow it.'
         type: string
-        default: ''
+        default: '--workspace'
+      kani-version:
+        description: 'kani-verifier release to install'
+        type: string
+        default: '0.68.0'
       runner:
         description: 'Override the runner label. Empty auto-selects by repo visibility, as the other reusables do.'
         type: string
@@ -22,9 +26,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  KANI_VERSION: '0.68.0'
 
 jobs:
   kani:
@@ -44,7 +45,7 @@ jobs:
       - name: Detect harnesses
         id: detect
         run: |
-          if grep -rqE --include='*.rs' --exclude-dir=target --exclude-dir=.git '#\[kani::proof' .; then
+          if grep -rqE --include='*.rs' --exclude-dir=target --exclude-dir=.git '#\[(cfg_attr\([^]]*)?kani::proof' .; then
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
@@ -56,7 +57,14 @@ jobs:
         with:
           toolchain: stable
 
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        if: steps.detect.outputs.found == 'true'
+        with:
+          workspaces: ${{ inputs.working-directory }}
+          cache-targets: ${{ runner.environment == 'github-hosted' }}
+
       - name: Kani cache
+        id: kani-cache
         if: steps.detect.outputs.found == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -64,12 +72,12 @@ jobs:
             ~/.kani
             ~/.cargo/bin/kani
             ~/.cargo/bin/cargo-kani
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-          key: kani-${{ runner.os }}-${{ runner.arch }}-${{ env.KANI_VERSION }}
+          key: kani-${{ runner.os }}-${{ runner.arch }}-${{ inputs.kani-version }}
 
       - name: Install Kani
-        if: steps.detect.outputs.found == 'true'
+        if: steps.detect.outputs.found == 'true' && steps.kani-cache.outputs.cache-hit != 'true'
+        env:
+          KANI_VERSION: ${{ inputs.kani-version }}
         run: |
           cargo install --locked kani-verifier --version "$KANI_VERSION"
           cargo kani setup
@@ -78,4 +86,4 @@ jobs:
         if: steps.detect.outputs.found == 'true'
         env:
           KANI_ARGS: ${{ inputs.args }}
-        run: cargo kani --workspace $KANI_ARGS
+        run: cargo kani $KANI_ARGS
