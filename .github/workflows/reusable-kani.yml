@@ -45,11 +45,11 @@ jobs:
       - name: Detect harnesses
         id: detect
         run: |
-          if grep -rqE --include='*.rs' --exclude-dir=target --exclude-dir=.git '#\[(cfg_attr\([^]]*)?kani::proof' .; then
+          if grep -rqE --include='*.rs' --exclude-dir=target --exclude-dir=.git 'kani::proof' .; then
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "No #[kani::proof] harness found, nothing to verify"
+            echo "::notice::No kani::proof harness found under $PWD, nothing to verify"
           fi
 
       - if: steps.detect.outputs.found == 'true'
@@ -63,19 +63,8 @@ jobs:
           workspaces: ${{ inputs.working-directory }}
           cache-targets: ${{ runner.environment == 'github-hosted' }}
 
-      - name: Kani cache
-        id: kani-cache
-        if: steps.detect.outputs.found == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: |
-            ~/.kani
-            ~/.cargo/bin/kani
-            ~/.cargo/bin/cargo-kani
-          key: kani-${{ runner.os }}-${{ runner.arch }}-${{ inputs.kani-version }}
-
       - name: Install Kani
-        if: steps.detect.outputs.found == 'true' && steps.kani-cache.outputs.cache-hit != 'true'
+        if: steps.detect.outputs.found == 'true'
         env:
           KANI_VERSION: ${{ inputs.kani-version }}
         run: |
