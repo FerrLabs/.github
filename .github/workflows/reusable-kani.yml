@@ -8,7 +8,7 @@ on:
         type: string
         default: '.'
       args:
-        description: 'Args for cargo kani, including the package scope. Replace --workspace with -p <crate> to narrow it.'
+        description: 'Args for cargo kani, including the package scope. Replace --workspace with -p <crate> to narrow it. Harness detection always scans the whole working-directory.'
         type: string
         default: '--workspace'
       kani-version:
@@ -67,9 +67,10 @@ jobs:
         if: steps.detect.outputs.found == 'true'
         env:
           KANI_VERSION: ${{ inputs.kani-version }}
+        working-directory: ${{ runner.temp }}
         run: |
-          cargo install --locked kani-verifier --version "$KANI_VERSION"
-          cargo kani setup
+          cargo +stable install --locked kani-verifier --version "$KANI_VERSION"
+          cargo +stable kani setup
 
       - name: Run Kani
         if: steps.detect.outputs.found == 'true'
