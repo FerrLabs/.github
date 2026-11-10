@@ -1,0 +1,79 @@
+name: Reusable — Kani
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Crate or workspace root'
+        type: string
+        default: '.'
+      args:
+        description: 'Args for cargo kani, including the package scope. Replace --workspace with -p <crate> to narrow it. Harness detection always scans the whole working-directory.'
+        type: string
+        default: '--workspace'
+      kani-version:
+        description: 'kani-verifier release to install'
+        type: string
+        default: '0.68.0'
+      runner:
+        description: 'Override the runner label. Empty auto-selects by repo visibility, as the other reusables do.'
+        type: string
+        default: ''
+      timeout-minutes:
+        description: 'Job timeout'
+        type: number
+        default: 30
+
+permissions:
+  contents: read
+
+jobs:
+  kani:
+    name: Kani
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-large' || 'ubuntu-latest') }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Detect harnesses
+        id: detect
+        run: |
+          if grep -rqE --include='*.rs' --exclude-dir=target --exclude-dir=.git 'kani::proof' .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No kani::proof harness found under $PWD, nothing to verify"
+          fi
+
+      - if: steps.detect.outputs.found == 'true'
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        if: steps.detect.outputs.found == 'true'
+        with:
+          workspaces: ${{ inputs.working-directory }}
+          cache-targets: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Install Kani
+        if: steps.detect.outputs.found == 'true'
+        env:
+          KANI_VERSION: ${{ inputs.kani-version }}
+        working-directory: ${{ runner.temp }}
+        run: |
+          cargo +stable install --locked kani-verifier --version "$KANI_VERSION"
+          cargo +stable kani setup
+
+      - name: Run Kani
+        if: steps.detect.outputs.found == 'true'
+        env:
+          KANI_ARGS: ${{ inputs.args }}
+        run: cargo kani $KANI_ARGS
