@@ -147,6 +147,10 @@ on:
         description: 'Name of the env var the tests read the database URL from.'
         type: string
         default: 'TEST_DATABASE_URL'
+      lfs:
+        description: 'Fetch Git LFS objects from LFSX (lfsx.ferrlabs.com) after checkout, authenticated with the job token. Read only. Applies to the test, integration and coverage jobs.'
+        type: boolean
+        default: false
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -189,6 +193,15 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - if: inputs.lfs
+        name: Fetch LFS objects
+        env:
+          LFS_TOKEN: ${{ github.token }}
+        run: >-
+          git
+          -c credential.https://lfsx.ferrlabs.com.username=x-access-token
+          -c 'credential.https://lfsx.ferrlabs.com.helper=!f() { echo "password=$LFS_TOKEN"; }; f'
+          lfs pull
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
         env:
@@ -337,6 +350,15 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - if: inputs.lfs
+        name: Fetch LFS objects
+        env:
+          LFS_TOKEN: ${{ github.token }}
+        run: >-
+          git
+          -c credential.https://lfsx.ferrlabs.com.username=x-access-token
+          -c 'credential.https://lfsx.ferrlabs.com.helper=!f() { echo "password=$LFS_TOKEN"; }; f'
+          lfs pull
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
         env:
@@ -588,6 +610,15 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - if: inputs.lfs
+        name: Fetch LFS objects
+        env:
+          LFS_TOKEN: ${{ github.token }}
+        run: >-
+          git
+          -c credential.https://lfsx.ferrlabs.com.username=x-access-token
+          -c 'credential.https://lfsx.ferrlabs.com.helper=!f() { echo "password=$LFS_TOKEN"; }; f'
+          lfs pull
       - if: inputs.apt-packages != '' && runner.os == 'Linux'
         name: Install apt packages
         env:
