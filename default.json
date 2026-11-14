@@ -135,7 +135,7 @@
       "allowedVersions": "<4"
     },
     {
-      "description": "Third-party npm — quarantine for 3 days after release before opening PR, then auto-merge patch/minor. Release age is the only gate: this rule used to carry `matchMergeConfidence`, which is not a real Renovate option (the real one is `matchConfidence`) and therefore matched nothing, so the confidence gate never applied. Rather than adopt `matchConfidence` — which needs a Mend API key and reports `neutral` without one, silently disabling npm automerge everywhere — the quarantine is raised from 1 to 3 days, which is where most malicious publishes are detected and yanked. npm is deliberately stricter than the Cargo rule below: it is the ecosystem where these attacks actually land.",
+      "description": "Third-party npm — quarantine for 3 days after release before opening PR, then auto-merge every update type, majors included, once the FerrFleet renovate-agent review approves it (the org ruleset requires one approving review). Release age is the only gate: this rule used to carry `matchMergeConfidence`, which is not a real Renovate option (the real one is `matchConfidence`) and therefore matched nothing, so the confidence gate never applied. Rather than adopt `matchConfidence` — which needs a Mend API key and reports `neutral` without one, silently disabling npm automerge everywhere — the quarantine is raised from 1 to 3 days, which is where most malicious publishes are detected and yanked. npm is deliberately stricter than the Cargo rule below: it is the ecosystem where these attacks actually land.",
       "matchManagers": [
         "npm"
       ],
@@ -145,8 +145,9 @@
         "!ferrflow"
       ],
       "matchUpdateTypes": [
-        "patch",
-        "minor"
+        "major",
+        "minor",
+        "patch"
       ],
       "minimumReleaseAge": "3 days",
       "automerge": true,
@@ -154,7 +155,7 @@
       "automergeStrategy": "squash"
     },
     {
-      "description": "Third-party Cargo — wait 1 day after release before opening PR (no merge confidence on crates.io, so this is the main safety gate)",
+      "description": "Third-party Cargo — wait 1 day after release before opening PR (no merge confidence on crates.io, so this is the main safety gate), then auto-merge every update type, majors included, once the FerrFleet renovate-agent review approves it",
       "matchManagers": [
         "cargo"
       ],
@@ -162,8 +163,9 @@
         "!/^ferrlabs-/"
       ],
       "matchUpdateTypes": [
-        "patch",
-        "minor"
+        "major",
+        "minor",
+        "patch"
       ],
       "minimumReleaseAge": "1 day",
       "automerge": true,
@@ -171,7 +173,7 @@
       "automergeStrategy": "squash"
     },
     {
-      "description": "GitHub Actions — wait 3 days after release (action authors often re-tag), grouped + auto-merge weekly",
+      "description": "GitHub Actions — wait 3 days after release (action authors often re-tag), grouped + auto-merge weekly. Majors are in the group and automerge like the rest, gated by the FerrLabs-wide approving review; this group must never contain an upgrade with automerge false, or the whole weekly branch loses automerge.",
       "matchManagers": [
         "github-actions"
       ],
@@ -209,7 +211,7 @@
       "groupName": "FerrLabs actions (weekly)"
     },
     {
-      "description": "Dockerfile base images: wait 3 days, grouped, auto-merged, taken on Mondays. The window is the whole day: with only the runs before 6am, a repository the job did not reach in that slot, or an image that crossed the 3-day age during Monday, waited another week (an image released on the weekend still does, since it is not old enough until Tuesday), and no Docker update landed in the org between mid-July and late September. The window was not the real blocker: Docker Hub gives Renovate no release timestamp for these tags, and under the default minimumReleaseAgeBehaviour (timestamp-required) an update without one is held as pending forever, so renovate/docker-images was never created at all (FerrVault-Cloud sat on rust 1.97 with 1.99 out). timestamp-optional keeps the 3-day wait wherever a timestamp exists and lets timestamp-less tags through on the Monday schedule.",
+      "description": "Dockerfile base images: wait 3 days, grouped, auto-merged, taken on Mondays. Majors are split out by the last rule and stay manual, so they never share this group. The window is the whole day: with only the runs before 6am, a repository the job did not reach in that slot, or an image that crossed the 3-day age during Monday, waited another week (an image released on the weekend still does, since it is not old enough until Tuesday), and no Docker update landed in the org between mid-July and late September. The window was not the real blocker: Docker Hub gives Renovate no release timestamp for these tags, and under the default minimumReleaseAgeBehaviour (timestamp-required) an update without one is held as pending forever, so renovate/docker-images was never created at all (FerrVault-Cloud sat on rust 1.97 with 1.99 out). timestamp-optional keeps the 3-day wait wherever a timestamp exists and lets timestamp-less tags through on the Monday schedule.",
       "matchManagers": [
         "dockerfile"
       ],
@@ -224,7 +226,7 @@
       "groupName": "Docker images"
     },
     {
-      "description": "Kubernetes infra (Flux HelmReleases, Helm charts, manifest image tags) — auto-merge patch+minor after the 1-day quarantine. Majors stay manual (rule below).",
+      "description": "Kubernetes infra (Flux HelmReleases, Helm charts, manifest image tags) — auto-merge patch+minor after the 1-day quarantine. Majors stay manual (last rule): a review cannot tell whether a new major boots in the cluster.",
       "matchManagers": [
         "flux",
         "helmv3",
@@ -241,7 +243,7 @@
       "automergeStrategy": "squash"
     },
     {
-      "description": "Charts published by the org (`oci://ghcr.io/ferrlabs/charts`) — same trust as the @ferrlabs/ npm packages and the `ferrlabs-*` crates above. Without this rule the third-party chart rule right above makes our own publications wait a day, so a chart released in the morning only reaches the cluster the next day (RoxyCloud 0.25.0 through 0.25.2 all queued for 24h). matchPackageNames targets the full OCI name: the flux manager resolves a HelmRelease backed by a `type: oci` HelmRepository to the docker datasource, where a plain HTTP repository would yield the chart name alone. Patch and minor only: without matchUpdateTypes a major would join the `FerrLabs charts` group, and since grouping ignores the major/minor split, generateBranchConfig turns the whole branch's automerge off as soon as one upgrade carries `automerge: false` — which the last rule gives majors. The patch and minor bumps this rule exists to fast-track would then sit and wait for someone to deal with the major. Restricted this way a major falls through to the global one-day age and stays an ungrouped manual PR.",
+      "description": "Charts published by the org (`oci://ghcr.io/ferrlabs/charts`) — same trust as the @ferrlabs/ npm packages and the `ferrlabs-*` crates above. Without this rule the third-party chart rule right above makes our own publications wait a day, so a chart released in the morning only reaches the cluster the next day (RoxyCloud 0.25.0 through 0.25.2 all queued for 24h). matchPackageNames targets the full OCI name: the flux manager resolves a HelmRelease backed by a `type: oci` HelmRepository to the docker datasource, where a plain HTTP repository would yield the chart name alone. Patch and minor only: without matchUpdateTypes a major would join the `FerrLabs charts` group, and since grouping ignores the major/minor split, generateBranchConfig turns the whole branch's automerge off as soon as one upgrade carries `automerge: false` — which the last rule gives infra majors. The patch and minor bumps this rule exists to fast-track would then sit and wait for someone to deal with the major. Restricted this way a major falls through to the global one-day age and stays an ungrouped manual PR.",
       "matchManagers": [
         "flux",
         "helmv3",
@@ -265,10 +267,18 @@
       "groupName": "FerrLabs charts"
     },
     {
-      "description": "Major updates — always manual",
+      "description": "Infra majors stay manual: Flux, Helm charts, manifest image tags and Dockerfile base images. The review every PR gets from the FerrFleet renovate-agent reads the diff and the changelog, it cannot tell whether a new major boots in the cluster or in the built image, so a human decides. groupName is reset so a manual major never joins the Docker images or FerrLabs charts group and turns off automerge for the patch and minor bumps in it (grouping ignores the major/minor split and a branch loses automerge as soon as one upgrade has automerge false). Every other manager's majors automerge through its own rule above.",
+      "matchManagers": [
+        "dockerfile",
+        "flux",
+        "helmv3",
+        "helm-values",
+        "kubernetes"
+      ],
       "matchUpdateTypes": [
         "major"
       ],
+      "groupName": null,
       "automerge": false
     }
   ],
