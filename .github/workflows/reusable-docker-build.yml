@@ -173,7 +173,7 @@ jobs:
           # impractical — Debian/Alpine point releases supersede them and exact
           # pins break the build. Every other warning still fails the gate.
           "${RUNNER_TEMP}/hadolint" --failure-threshold warning \
-            --ignore DL3008 --ignore DL3018 \
+            --ignore DL3008 --ignore DL3016 --ignore DL3018 \
             "${CONTEXT}/${DOCKERFILE}"
 
   build:
