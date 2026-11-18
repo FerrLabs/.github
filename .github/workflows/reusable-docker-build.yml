@@ -115,6 +115,16 @@ on:
         type: string
         required: false
         default: ''
+      sourcemaps-target:
+        description: 'Dockerfile stage holding the source maps (e.g. sourcemaps). With sourcemaps-release also set, that stage is exported after the build, the final image is checked (every content-hashed .js has a map, no .map ships), the maps are uploaded to the faro-sourcemaps bucket, and only then is the image pushed. Single-platform builds only. Needs the sourcemaps-sat secret. Empty = skip.'
+        type: string
+        required: false
+        default: ''
+      sourcemaps-release:
+        description: 'Release the maps are filed under, <app>-<version> (e.g. ferrtrack-app-1.4.2). The part before the trailing -<version> identifies the app; only its 10 newest releases are kept. Empty = skip.'
+        type: string
+        required: false
+        default: ''
     outputs:
       digest:
         description: 'Image digest (sha256:...)'
@@ -134,6 +144,9 @@ on:
         required: false
       maxmind-license-key:
         description: 'MaxMind license key, to bake GeoLite2 into the image. Exposed as a build secret (id=maxmind-license-key), never as a build-arg, so it stays out of the image history and provenance. In the Dockerfile: RUN --mount=type=secret,id=maxmind-license-key sh -c ''KEY="$(cat /run/secrets/maxmind-license-key)" ...''; the Dockerfile must degrade gracefully when it is absent.'
+        required: false
+      sourcemaps-sat:
+        description: 'FerrVault service-account token (vault faro-sourcemaps) that yields the Garage S3 read/write key for the source map upload. Pass the org secret FERRVAULT_SOURCEMAPS_SAT. Required when sourcemaps-target and sourcemaps-release are set.'
         required: false
 
 concurrency:
@@ -210,8 +223,8 @@ jobs:
               core.exportVariable(name, process.env[name] ?? '')
             }
 
-      - name: Build & push (buildah)
-        id: push
+      - name: Build (buildah)
+        id: build
         env:
           IMAGE: ${{ inputs.image-name }}
           TAG: ${{ inputs.tag }}
@@ -220,9 +233,7 @@ jobs:
           PLATFORMS: ${{ inputs.platforms }}
           BUILD_ARGS: ${{ inputs.build-args }}
           BUILD_ULIMITS: ${{ inputs.build-ulimits }}
-          EXTRA_TAGS: ${{ inputs.extra-tags }}
           PUSH: ${{ inputs.push }}
-          PUSH_RETRIES: ${{ inputs.push-retries }}
           SMOKE_CMD: ${{ inputs.smoke-test-cmd }}
           PACKAGES_READ: ${{ secrets.packages-read }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.cargo-registry-token }}
@@ -232,6 +243,8 @@ jobs:
           SCCACHE_GHA: ${{ inputs.sccache-gha }}
           CACHE: ${{ inputs.cache }}
           CACHE_TTL: ${{ inputs.cache-ttl }}
+          SOURCEMAPS_TARGET: ${{ inputs.sourcemaps-target }}
+          SOURCEMAPS_RELEASE: ${{ inputs.sourcemaps-release }}
         run: |
           set -euo pipefail
 
@@ -332,13 +345,119 @@ jobs:
             exit 1
           fi
 
-          rm -f "$RUNNER_TEMP/packages-read" "$RUNNER_TEMP/cargo-registry-token" "$RUNNER_TEMP/gha-cache-url" "$RUNNER_TEMP/gha-runtime-token"
+          if [ -n "${SOURCEMAPS_TARGET:-}" ] && [ -n "${SOURCEMAPS_RELEASE:-}" ]; then
+            maps_dir="$RUNNER_TEMP/sourcemaps"
+            rm -rf "$maps_dir"
+            mkdir -p "$maps_dir"
+            buildah build \
+              --isolation=chroot --layers \
+              --platform "$PLATFORMS" \
+              "${cache_args[@]}" \
+              "${secret_args[@]}" "${build_arg_args[@]}" "${ulimit_args[@]}" \
+              --target "$SOURCEMAPS_TARGET" \
+              --output "type=local,dest=$maps_dir" \
+              -f "$CONTEXT/$DOCKERFILE" "$CONTEXT"
+
+            ctr="$(buildah from "$IMAGE:$TAG")"
+            buildah unshare env CTR="$ctr" MAPS_DIR="$maps_dir" bash -euo pipefail -c '
+              mnt="$(buildah mount "$CTR")"
+              shipped_maps="$(cd "$mnt" && find . -type f -name "*.map")"
+              if [ -n "$shipped_maps" ]; then
+                echo "::error::the final image ships source maps:"
+                echo "$shipped_maps"
+                exit 1
+              fi
+              missing=0
+              while IFS= read -r js; do
+                name="$(basename "$js")"
+                if [ -z "$(find "$MAPS_DIR" -type f -name "$name.map" -print -quit)" ]; then
+                  echo "::error::no source map for $js"
+                  missing=1
+                fi
+              done < <(cd "$mnt" && find . -type f -name "*.js" | grep -P "[.-](?=[A-Za-z0-9_-]*[0-9A-Z])[A-Za-z0-9_-]{8,}\.js$" || true)
+              buildah umount "$CTR"
+              exit "$missing"
+            '
+            buildah rm "$ctr"
+            [ -n "$(find "$maps_dir" -type f -name "*.js.map" -print -quit)" ] || { echo "::error::target $SOURCEMAPS_TARGET exported no .js.map"; exit 1; }
+          fi
+
+          rm -f "$RUNNER_TEMP"/packages-read "$RUNNER_TEMP"/cargo-registry-token "$RUNNER_TEMP"/gha-cache-url "$RUNNER_TEMP"/gha-runtime-token
 
           if [ -n "${SMOKE_CMD:-}" ]; then
             echo "::group::smoke test"
             SMOKE_IMAGE="$IMAGE:$TAG" bash -euo pipefail -c "$SMOKE_CMD"
             echo "::endgroup::"
           fi
+
+      - name: Fetch the source map key (FerrVault)
+        if: inputs.push && inputs.sourcemaps-target != '' && inputs.sourcemaps-release != ''
+        uses: FerrLabs/FerrVault/action@33fcd9b8806fb0eddc0a2ca2da0180aa926b4a0a # v1.1.1
+        with:
+          api-url: https://api.ferrvault.com
+          token: ${{ secrets.sourcemaps-sat }}
+          names: SOURCEMAPS_S3_KEY,SOURCEMAPS_S3_SECRET
+
+      - name: Upload source maps (garage S3)
+        if: inputs.push && inputs.sourcemaps-target != '' && inputs.sourcemaps-release != ''
+        env:
+          RELEASE: ${{ inputs.sourcemaps-release }}
+          S3_ENDPOINT: https://s3.ferrlabs.com
+          S3_BUCKET: faro-sourcemaps
+          S3_REGION: ferrlabs
+          KEEP_RELEASES: '10'
+        run: |
+          set -euo pipefail
+
+          s3() {
+            curl -fsS --aws-sigv4 "aws:amz:${S3_REGION}:s3" \
+              --user "${SOURCEMAPS_S3_KEY}:${SOURCEMAPS_S3_SECRET}" "$@"
+          }
+          put() {
+            local file="$1" key="$2"
+            s3 -X PUT -H "x-amz-content-sha256: $(sha256sum "$file" | cut -d' ' -f1)" \
+              --data-binary "@$file" "${S3_ENDPOINT}/${S3_BUCKET}/${key}" -o /dev/null
+          }
+
+          maps_dir="$RUNNER_TEMP/sourcemaps"
+          count=0
+          while IFS= read -r map; do
+            put "$map" "${RELEASE}/$(basename "$map")"
+            count=$((count + 1))
+          done < <(find "$maps_dir" -type f -name '*.js.map')
+          echo "uploaded $count source maps to ${S3_BUCKET}/${RELEASE}/"
+
+          app="${RELEASE%-*}"
+          prefixes="$(s3 -G "${S3_ENDPOINT}/${S3_BUCKET}/" \
+            --data-urlencode 'list-type=2' --data-urlencode 'delimiter=/' --data-urlencode "prefix=${app}-" \
+            -H 'x-amz-content-sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' \
+            | grep -o '<Prefix>[^<]*</Prefix>' | sed -e 's/<[^>]*>//g' -e 's#/$##' \
+            | grep -E "^$(printf '%s' "$app" | sed 's/[][\.*^$/]/\\&/g')-[0-9][^/]*$" || true)"
+          stale="$(printf '%s\n' "$prefixes" | sort -V | head -n "-${KEEP_RELEASES}" || true)"
+          while IFS= read -r old; do
+            [ -z "$old" ] && continue
+            keys="$(s3 -G "${S3_ENDPOINT}/${S3_BUCKET}/" \
+              --data-urlencode 'list-type=2' --data-urlencode "prefix=${old}/" \
+              -H 'x-amz-content-sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' \
+              | grep -o '<Key>[^<]*</Key>' | sed 's/<[^>]*>//g')"
+            while IFS= read -r key; do
+              [ -z "$key" ] && continue
+              s3 -X DELETE -H 'x-amz-content-sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' \
+                "${S3_ENDPOINT}/${S3_BUCKET}/${key}" -o /dev/null
+            done <<< "$keys"
+            echo "pruned release $old"
+          done <<< "$stale"
+
+      - name: Push (buildah)
+        id: push
+        env:
+          IMAGE: ${{ inputs.image-name }}
+          TAG: ${{ inputs.tag }}
+          EXTRA_TAGS: ${{ inputs.extra-tags }}
+          PUSH: ${{ inputs.push }}
+          PUSH_RETRIES: ${{ inputs.push-retries }}
+        run: |
+          set -euo pipefail
 
           if [ "$PUSH" != "true" ]; then
             echo "digest=" >> "$GITHUB_OUTPUT"
