@@ -12,8 +12,8 @@ jobs:
   cla:
     uses: FerrLabs/.github/.github/workflows/reusable-cla.yml@main
     secrets:
-      CLA_APP_CLIENT_ID: ${{ secrets.CLA_APP_CLIENT_ID }}
-      CLA_APP_PRIVATE_KEY: ${{ secrets.CLA_APP_PRIVATE_KEY }}
+      FERRLABS_APP_CLIENT_ID: ${{ secrets.FERRLABS_APP_CLIENT_ID }}
+      FERRLABS_APP_PRIVATE_KEY: ${{ secrets.FERRLABS_APP_PRIVATE_KEY }}
     permissions:
       actions: write
       contents: read
