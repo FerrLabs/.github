@@ -116,7 +116,7 @@ on:
         required: false
         default: ''
       sourcemaps-target:
-        description: 'Dockerfile stage holding the source maps (e.g. sourcemaps). With sourcemaps-release also set, that stage is exported after the build, the final image is checked (every content-hashed .js has a map, no .map ships), the maps are uploaded to the faro-sourcemaps bucket, and only then is the image pushed. Single-platform builds only. Needs the sourcemaps-sat secret. Empty = skip.'
+        description: 'Dockerfile stage holding the source maps (e.g. sourcemaps). With sourcemaps-release also set, that stage is exported after the build, the final image is checked (every content-hashed .js has a map, no .map ships), the maps are uploaded to the faro-sourcemaps bucket, and only then is the image pushed. Single-platform builds only. Needs the sourcemaps-s3-key and sourcemaps-s3-secret secrets. Empty = skip.'
         type: string
         required: false
         default: ''
@@ -145,8 +145,11 @@ on:
       maxmind-license-key:
         description: 'MaxMind license key, to bake GeoLite2 into the image. Exposed as a build secret (id=maxmind-license-key), never as a build-arg, so it stays out of the image history and provenance. In the Dockerfile: RUN --mount=type=secret,id=maxmind-license-key sh -c ''KEY="$(cat /run/secrets/maxmind-license-key)" ...''; the Dockerfile must degrade gracefully when it is absent.'
         required: false
-      sourcemaps-sat:
-        description: 'FerrVault service-account token (vault faro-sourcemaps) that yields the Garage S3 read/write key for the source map upload. Pass the org secret FERRVAULT_SOURCEMAPS_SAT. Required when sourcemaps-target and sourcemaps-release are set.'
+      sourcemaps-s3-key:
+        description: 'Garage S3 access key with read/write on the faro-sourcemaps bucket. Pass the org secret SOURCEMAPS_S3_KEY. Required when sourcemaps-target and sourcemaps-release are set.'
+        required: false
+      sourcemaps-s3-secret:
+        description: 'Garage S3 secret key, pair of sourcemaps-s3-key. Pass the org secret SOURCEMAPS_S3_SECRET. Required when sourcemaps-target and sourcemaps-release are set.'
         required: false
 
 concurrency:
@@ -390,18 +393,12 @@ jobs:
             echo "::endgroup::"
           fi
 
-      - name: Fetch the source map key (FerrVault)
-        if: inputs.push && inputs.sourcemaps-target != '' && inputs.sourcemaps-release != ''
-        uses: FerrLabs/FerrVault/action@677be16ae6ee524e1af8ee5475f7872b1a90ec06 # main
-        with:
-          api-url: https://api.ferrvault.com
-          token: ${{ secrets.sourcemaps-sat }}
-          names: SOURCEMAPS_S3_KEY,SOURCEMAPS_S3_SECRET
-
       - name: Upload source maps (garage S3)
         if: inputs.push && inputs.sourcemaps-target != '' && inputs.sourcemaps-release != ''
         env:
           RELEASE: ${{ inputs.sourcemaps-release }}
+          SOURCEMAPS_S3_KEY: ${{ secrets.sourcemaps-s3-key }}
+          SOURCEMAPS_S3_SECRET: ${{ secrets.sourcemaps-s3-secret }}
           S3_ENDPOINT: https://s3.ferrlabs.com
           S3_BUCKET: faro-sourcemaps
           S3_REGION: ferrlabs
