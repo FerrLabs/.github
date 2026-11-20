@@ -1,0 +1,21 @@
+name: CLA
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, closed, synchronize]
+
+permissions: {}
+
+jobs:
+  cla:
+    uses: FerrLabs/.github/.github/workflows/reusable-cla.yml@main
+    secrets:
+      RENOVATE_APP_CLIENT_ID: ${{ secrets.RENOVATE_APP_CLIENT_ID }}
+      RENOVATE_APP_PRIVATE_KEY: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+      statuses: write

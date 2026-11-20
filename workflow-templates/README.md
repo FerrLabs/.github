@@ -14,7 +14,8 @@ GitHub-discovered workflow templates. They appear under **Actions → New workfl
 | [`scorecard`](scorecard.yml) | OpenSSF Scorecard supply-chain risk score | All public repos and key private repos. |
 | [`security-scan`](security-scan.yml) | Reusable: gitleaks (secrets) + osv-scanner (CVE) + trufflehog (deep history) | Every repo — call the shared workflow from `FerrLabs/.github`. |
 | [`pr-title`](pr-title.yml) | Conventional Commits validation on PR titles | Every repo (mandatory because we squash-merge). |
-| [`dco`](dco.yml) | Reusable: every commit of a PR needs a `Signed-off-by` line | Repos that enforce the DCO. |
+| [`cla`](cla.yml) | Reusable: first-time contributors sign the [CLA](../CLA.md) by commenting on their PR | Every repo that takes outside contributions. |
+| [`dco`](dco.yml) | Reusable: every commit of a PR needs a `Signed-off-by` line | Legacy, replaced by `cla`. Removed once every repo has migrated. |
 | [`release`](release.yml) | Auto-release on push to main with `FerrLabs/FerrFlow@v7` | Repos that ship semver releases. |
 | [`docker-publish`](docker-publish.yml) | Reusable: hadolint + multi-arch build + Trivy + cosign keyless + SBOM | Repos that publish a container image. |
 
@@ -44,5 +45,6 @@ Hosting the reusables in the **public** `.github` repo (rather than the private 
 | `ci-node`, `ci-astro` | `FERRLABS_PACKAGES_READ` | Required only when the caller passes `registry-url` for a private registry |
 | `ci-astro` | `LHCI_GITHUB_APP_TOKEN` | Optional (Lighthouse comments on PRs) |
 | `security-scan` | `GITLEAKS_LICENSE` | Required for orgs with >25 contributors |
+| `cla` | `RENOVATE_APP_CLIENT_ID`, `RENOVATE_APP_PRIVATE_KEY` | Required (org secrets, passed explicitly by name); the app must be installed on `FerrLabs/.github` with `contents: write` |
 | `release` | `FERRLABS_BOT_*` (FerrFlow OIDC) | Configured org-wide |
 | `docker-publish` | `GITHUB_TOKEN` | Auto-provided |

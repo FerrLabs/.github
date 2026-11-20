@@ -1,0 +1,53 @@
+name: Reusable - CLA
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Override the runner label. Empty (default) auto-selects by repo visibility: private repos use ferrlabs-k8s-light, public repos use ubuntu-latest.'
+        type: string
+        required: false
+        default: ''
+    secrets:
+      RENOVATE_APP_CLIENT_ID:
+        required: true
+      RENOVATE_APP_PRIVATE_KEY:
+        required: true
+
+concurrency:
+  group: reusable-cla-${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  cla:
+    name: cla
+    if: github.event_name == 'pull_request_target' || (github.event.issue.pull_request && (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA'))
+    runs-on: ${{ inputs.runner != '' && inputs.runner || (github.event.repository.private && 'ferrlabs-k8s-light' || 'ubuntu-latest') }}
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - id: signatures-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ secrets.RENOVATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: FerrLabs
+          repositories: .github
+          permission-contents: write
+      - uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERSONAL_ACCESS_TOKEN: ${{ steps.signatures-token.outputs.token }}
+        with:
+          path-to-document: https://github.com/FerrLabs/.github/blob/main/CLA.md
+          path-to-signatures: signatures/cla.json
+          branch: cla-signatures
+          remote-organization-name: FerrLabs
+          remote-repository-name: .github
+          allowlist: ferrflow[bot],ferrlabs-renovate[bot],dependabot[bot],fluxcdbot,ferrfleet[bot],ferrfleet-interne[bot],github-actions[bot]
+          lock-pullrequest-aftermerge: 'false'
