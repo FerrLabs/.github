@@ -392,7 +392,7 @@ jobs:
 
       - name: Fetch the source map key (FerrVault)
         if: inputs.push && inputs.sourcemaps-target != '' && inputs.sourcemaps-release != ''
-        uses: FerrLabs/FerrVault/action@30be0453e18c7e257d1efc8615d36e39168d28f9 # main
+        uses: FerrLabs/FerrVault/action@7a8c6164db8d6a5ecba4c2f777d16fbec050f6b4 # main
         with:
           api-url: https://api.ferrvault.com
           token: ${{ secrets.sourcemaps-sat }}
