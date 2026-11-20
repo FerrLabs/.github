@@ -18,7 +18,7 @@ This includes the right to relicense your Contributions under any license, open 
 
 You grant FerrLabs and the recipients of software distributed by FerrLabs a perpetual, worldwide, non-exclusive, royalty-free, irrevocable patent license to make, have made, use, offer to sell, sell, import and otherwise transfer your Contributions, for patent claims you own or control that are necessarily infringed by your Contribution alone or combined with the project it was submitted to.
 
-If you start patent litigation claiming that a Contribution or the project infringes a patent, the patent licenses you received from FerrLabs for that project end on the date you file.
+If you start patent litigation claiming that a Contribution or the project infringes a patent, any patent licenses granted to you under this agreement or the project's license for that Contribution or project end on the date you file.
 
 ## 4. Moral rights
 

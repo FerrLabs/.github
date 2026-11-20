@@ -11,7 +11,9 @@ permissions: {}
 jobs:
   cla:
     uses: FerrLabs/.github/.github/workflows/reusable-cla.yml@main
-    secrets: inherit
+    secrets:
+      RENOVATE_APP_CLIENT_ID: ${{ secrets.RENOVATE_APP_CLIENT_ID }}
+      RENOVATE_APP_PRIVATE_KEY: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
     permissions:
       actions: write
       contents: read
