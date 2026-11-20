@@ -9,9 +9,9 @@ on:
         required: false
         default: ''
     secrets:
-      RENOVATE_APP_CLIENT_ID:
+      CLA_APP_CLIENT_ID:
         required: true
-      RENOVATE_APP_PRIVATE_KEY:
+      CLA_APP_PRIVATE_KEY:
         required: true
 
 concurrency:
@@ -34,8 +34,8 @@ jobs:
       - id: signatures-token
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
-          client-id: ${{ secrets.RENOVATE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          client-id: ${{ secrets.CLA_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CLA_APP_PRIVATE_KEY }}
           owner: FerrLabs
           repositories: .github
           permission-contents: write

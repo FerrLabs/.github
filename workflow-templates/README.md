@@ -45,6 +45,6 @@ Hosting the reusables in the **public** `.github` repo (rather than the private 
 | `ci-node`, `ci-astro` | `FERRLABS_PACKAGES_READ` | Required only when the caller passes `registry-url` for a private registry |
 | `ci-astro` | `LHCI_GITHUB_APP_TOKEN` | Optional (Lighthouse comments on PRs) |
 | `security-scan` | `GITLEAKS_LICENSE` | Required for orgs with >25 contributors |
-| `cla` | `RENOVATE_APP_CLIENT_ID`, `RENOVATE_APP_PRIVATE_KEY` | Required (org secrets, passed explicitly by name); the app must be installed on `FerrLabs/.github` with `contents: write` |
+| `cla` | `CLA_APP_CLIENT_ID`, `CLA_APP_PRIVATE_KEY` | Required (org secrets, passed explicitly by name); the `ferrlabs-cla` app must be installed on `FerrLabs/.github` with `contents: write` |
 | `release` | `FERRLABS_BOT_*` (FerrFlow OIDC) | Configured org-wide |
 | `docker-publish` | `GITHUB_TOKEN` | Auto-provided |
