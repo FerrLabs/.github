@@ -1,0 +1,19 @@
+name: CLA
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, closed, synchronize]
+
+permissions: {}
+
+jobs:
+  cla:
+    uses: FerrLabs/.github/.github/workflows/reusable-cla.yml@main
+    secrets: inherit
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: write
+      statuses: write

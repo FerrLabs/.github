@@ -1,0 +1,7 @@
+{
+  "name": "FerrLabs - CLA",
+  "description": "Asks a contributor to sign the FerrLabs CLA once, by comment, on their first PR. Signatures are stored in FerrLabs/.github.",
+  "iconName": "ferrlabs",
+  "categories": ["Continuous integration"],
+  "filePatterns": [".*"]
+}
