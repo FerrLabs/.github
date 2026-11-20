@@ -49,5 +49,5 @@ jobs:
           branch: cla-signatures
           remote-organization-name: FerrLabs
           remote-repository-name: .github
-          allowlist: BryanFRD,ferrflow[bot],ferrlabs-renovate[bot],dependabot[bot],fluxcdbot,ferrfleet[bot],ferrfleet-interne[bot],github-actions[bot]
+          allowlist: ferrflow[bot],ferrlabs-renovate[bot],dependabot[bot],fluxcdbot,ferrfleet[bot],ferrfleet-interne[bot],github-actions[bot]
           lock-pullrequest-aftermerge: 'false'
