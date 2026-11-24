@@ -1,6 +1,6 @@
 # FerrLabs Contributor License Agreement
 
-This agreement is between you and FerrLabs ("FerrLabs"). It covers every contribution you submit to any repository in the FerrLabs GitHub organization, now and in the future. You sign it once.
+This agreement is between you and Bryan Ferrando, sole proprietor (entrepreneur individuel) trading as FerrLabs, SIREN 104 243 951 ("FerrLabs"). It covers every contribution you submit to any repository in the FerrLabs GitHub organization, now and in the future. You sign it once.
 
 You keep the copyright in your contributions. This agreement gives FerrLabs the rights it needs to use them.
 
