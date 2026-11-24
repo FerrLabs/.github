@@ -231,15 +231,14 @@ jobs:
         id: toolchain
         env:
           INPUT_TOOLCHAIN: ${{ inputs.rust-toolchain }}
-          WORKING_DIRECTORY: ${{ inputs.working-directory }}
         run: |
           channel="$INPUT_TOOLCHAIN"
-          for file in rust-toolchain.toml rust-toolchain; do
+          for file in rust-toolchain rust-toolchain.toml; do
             [ -n "$channel" ] && break
-            [ -f "$WORKING_DIRECTORY/$file" ] || continue
-            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$WORKING_DIRECTORY/$file" | head -n1)
-            if [ -z "$channel" ] && ! grep -q = "$WORKING_DIRECTORY/$file"; then
-              channel=$(grep -m1 -v '^[[:space:]]*$' "$WORKING_DIRECTORY/$file" | tr -d '[:space:]')
+            [ -f "$file" ] || continue
+            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$file" | head -n1)
+            if [ -z "$channel" ] && ! grep -q = "$file"; then
+              channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
             fi
           done
           echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
@@ -403,15 +402,14 @@ jobs:
         id: toolchain
         env:
           INPUT_TOOLCHAIN: ${{ inputs.rust-toolchain }}
-          WORKING_DIRECTORY: ${{ inputs.working-directory }}
         run: |
           channel="$INPUT_TOOLCHAIN"
-          for file in rust-toolchain.toml rust-toolchain; do
+          for file in rust-toolchain rust-toolchain.toml; do
             [ -n "$channel" ] && break
-            [ -f "$WORKING_DIRECTORY/$file" ] || continue
-            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$WORKING_DIRECTORY/$file" | head -n1)
-            if [ -z "$channel" ] && ! grep -q = "$WORKING_DIRECTORY/$file"; then
-              channel=$(grep -m1 -v '^[[:space:]]*$' "$WORKING_DIRECTORY/$file" | tr -d '[:space:]')
+            [ -f "$file" ] || continue
+            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$file" | head -n1)
+            if [ -z "$channel" ] && ! grep -q = "$file"; then
+              channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
             fi
           done
           echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
@@ -529,15 +527,14 @@ jobs:
         id: toolchain
         env:
           INPUT_TOOLCHAIN: ${{ inputs.rust-toolchain }}
-          WORKING_DIRECTORY: ${{ inputs.working-directory }}
         run: |
           channel="$INPUT_TOOLCHAIN"
-          for file in rust-toolchain.toml rust-toolchain; do
+          for file in rust-toolchain rust-toolchain.toml; do
             [ -n "$channel" ] && break
-            [ -f "$WORKING_DIRECTORY/$file" ] || continue
-            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$WORKING_DIRECTORY/$file" | head -n1)
-            if [ -z "$channel" ] && ! grep -q = "$WORKING_DIRECTORY/$file"; then
-              channel=$(grep -m1 -v '^[[:space:]]*$' "$WORKING_DIRECTORY/$file" | tr -d '[:space:]')
+            [ -f "$file" ] || continue
+            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$file" | head -n1)
+            if [ -z "$channel" ] && ! grep -q = "$file"; then
+              channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
             fi
           done
           echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
@@ -696,15 +693,14 @@ jobs:
         id: toolchain
         env:
           INPUT_TOOLCHAIN: ${{ inputs.rust-toolchain }}
-          WORKING_DIRECTORY: ${{ inputs.working-directory }}
         run: |
           channel="$INPUT_TOOLCHAIN"
-          for file in rust-toolchain.toml rust-toolchain; do
+          for file in rust-toolchain rust-toolchain.toml; do
             [ -n "$channel" ] && break
-            [ -f "$WORKING_DIRECTORY/$file" ] || continue
-            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$WORKING_DIRECTORY/$file" | head -n1)
-            if [ -z "$channel" ] && ! grep -q = "$WORKING_DIRECTORY/$file"; then
-              channel=$(grep -m1 -v '^[[:space:]]*$' "$WORKING_DIRECTORY/$file" | tr -d '[:space:]')
+            [ -f "$file" ] || continue
+            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$file" | head -n1)
+            if [ -z "$channel" ] && ! grep -q = "$file"; then
+              channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
             fi
           done
           echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
