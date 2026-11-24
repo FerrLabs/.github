@@ -12,9 +12,9 @@ on:
         type: string
         default: ''
       rust-toolchain:
-        description: 'Rust toolchain (stable, nightly, beta, or pinned version)'
+        description: 'Rust toolchain (stable, nightly, beta, or pinned version). Empty (default) reads the channel from rust-toolchain.toml (or rust-toolchain) in working-directory, and falls back to stable when neither exists.'
         type: string
-        default: 'stable'
+        default: ''
       rust-components:
         description: 'Comma-separated rustup components'
         type: string
@@ -227,9 +227,24 @@ jobs:
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends $missing
+      - name: Resolve Rust toolchain
+        id: toolchain
+        env:
+          INPUT_TOOLCHAIN: ${{ inputs.rust-toolchain }}
+        run: |
+          channel="$INPUT_TOOLCHAIN"
+          for file in rust-toolchain rust-toolchain.toml; do
+            [ -n "$channel" ] && break
+            [ -f "$file" ] || continue
+            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$file" | head -n1)
+            if [ -z "$channel" ] && ! grep -q = "$file"; then
+              channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
+            fi
+          done
+          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          toolchain: ${{ inputs.rust-toolchain }}
+          toolchain: ${{ steps.toolchain.outputs.channel }}
           components: ${{ env.COVERAGE_IN_TEST == 'true' && (inputs.rust-components != '' && format('{0}, llvm-tools-preview', inputs.rust-components) || 'llvm-tools-preview') || inputs.rust-components }}
           targets: ${{ inputs.rust-targets }}
       - if: inputs.cache
@@ -383,9 +398,24 @@ jobs:
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends postgresql-client
+      - name: Resolve Rust toolchain
+        id: toolchain
+        env:
+          INPUT_TOOLCHAIN: ${{ inputs.rust-toolchain }}
+        run: |
+          channel="$INPUT_TOOLCHAIN"
+          for file in rust-toolchain rust-toolchain.toml; do
+            [ -n "$channel" ] && break
+            [ -f "$file" ] || continue
+            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$file" | head -n1)
+            if [ -z "$channel" ] && ! grep -q = "$file"; then
+              channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
+            fi
+          done
+          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          toolchain: ${{ inputs.rust-toolchain }}
+          toolchain: ${{ steps.toolchain.outputs.channel }}
           components: ${{ inputs.rust-components }}
           targets: ${{ inputs.rust-targets }}
       - if: inputs.cache
@@ -493,9 +523,24 @@ jobs:
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends $missing
+      - name: Resolve Rust toolchain
+        id: toolchain
+        env:
+          INPUT_TOOLCHAIN: ${{ inputs.rust-toolchain }}
+        run: |
+          channel="$INPUT_TOOLCHAIN"
+          for file in rust-toolchain rust-toolchain.toml; do
+            [ -n "$channel" ] && break
+            [ -f "$file" ] || continue
+            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$file" | head -n1)
+            if [ -z "$channel" ] && ! grep -q = "$file"; then
+              channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
+            fi
+          done
+          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          toolchain: ${{ inputs.rust-toolchain }}
+          toolchain: ${{ steps.toolchain.outputs.channel }}
       - if: inputs.cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
@@ -644,9 +689,24 @@ jobs:
           if command -v sudo >/dev/null 2>&1; then SUDO=sudo; else SUDO=; fi
           $SUDO apt-get update
           $SUDO apt-get install -y --no-install-recommends $missing
+      - name: Resolve Rust toolchain
+        id: toolchain
+        env:
+          INPUT_TOOLCHAIN: ${{ inputs.rust-toolchain }}
+        run: |
+          channel="$INPUT_TOOLCHAIN"
+          for file in rust-toolchain rust-toolchain.toml; do
+            [ -n "$channel" ] && break
+            [ -f "$file" ] || continue
+            channel=$(sed -nE "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*[\"']([^\"']+)[\"'].*/\1/p" "$file" | head -n1)
+            if [ -z "$channel" ] && ! grep -q = "$file"; then
+              channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
+            fi
+          done
+          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          toolchain: ${{ inputs.rust-toolchain }}
+          toolchain: ${{ steps.toolchain.outputs.channel }}
           components: llvm-tools-preview
       - if: inputs.cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
