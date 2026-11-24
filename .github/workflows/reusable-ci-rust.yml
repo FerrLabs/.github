@@ -12,7 +12,7 @@ on:
         type: string
         default: ''
       rust-toolchain:
-        description: 'Rust toolchain (stable, nightly, beta, or pinned version). Empty (default) reads the channel from rust-toolchain.toml (or rust-toolchain) in working-directory, and falls back to stable when neither exists.'
+        description: 'Rust toolchain (stable, nightly, beta, or pinned version). Empty (default) reads the channel from rust-toolchain or rust-toolchain.toml in working-directory, and falls back to stable when neither exists. A toolchain file in working-directory takes precedence over this input for cargo, so drop the input when the project has one.'
         type: string
         default: ''
       rust-components:
@@ -241,7 +241,9 @@ jobs:
               channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
             fi
           done
-          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
+          channel="${channel:-stable}"
+          [[ $channel =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::invalid toolchain '$channel'"; exit 1; }
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
           toolchain: ${{ steps.toolchain.outputs.channel }}
@@ -412,7 +414,9 @@ jobs:
               channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
             fi
           done
-          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
+          channel="${channel:-stable}"
+          [[ $channel =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::invalid toolchain '$channel'"; exit 1; }
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
           toolchain: ${{ steps.toolchain.outputs.channel }}
@@ -537,7 +541,9 @@ jobs:
               channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
             fi
           done
-          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
+          channel="${channel:-stable}"
+          [[ $channel =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::invalid toolchain '$channel'"; exit 1; }
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
           toolchain: ${{ steps.toolchain.outputs.channel }}
@@ -703,7 +709,9 @@ jobs:
               channel=$(grep -m1 -v '^[[:space:]]*$' "$file" | tr -d '[:space:]')
             fi
           done
-          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
+          channel="${channel:-stable}"
+          [[ $channel =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::invalid toolchain '$channel'"; exit 1; }
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
           toolchain: ${{ steps.toolchain.outputs.channel }}
