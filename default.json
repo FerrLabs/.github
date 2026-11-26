@@ -26,6 +26,9 @@
     "dependencies"
   ],
   "platformAutomerge": true,
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
   "onboardingConfig": {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
@@ -46,6 +49,17 @@
   },
   "osvVulnerabilityAlerts": true,
   "packageRules": [
+    {
+      "description": "Infra stays as before the global automerge: Flux, Helm and Kubernetes manifests plus Kustomize are not auto-merged by default. Placed first on purpose, later rules win: the patch/minor rules and the FerrLabs charts rule below re-enable automerge for exactly what they did before, and the last rule keeps majors manual.",
+      "matchManagers": [
+        "flux",
+        "helmv3",
+        "helm-values",
+        "kubernetes",
+        "kustomize"
+      ],
+      "automerge": false
+    },
     {
       "description": "FerrLabs npm packages: trust them, scan often, merge without delay. They are public on npmjs.org since FerrLabs/UI#597, so no registry override and no auth. internalChecksFilter:none skips the stability-days gate inherited from the global default. rangeStrategy:bump and semanticCommitType:fix make a bump ship: an in-range update used to touch only the root lockfile under chore(deps), which FerrFlow attributes to no package and releases for no one, so ferrflow.com sat on ui-ng 1.40.0 while main had locked 1.43.0. Writing the new floor into the consumer's package.json puts the change inside the package path, and fix cuts its release.",
       "matchPackageNames": [
