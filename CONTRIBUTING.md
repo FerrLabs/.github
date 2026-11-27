@@ -12,9 +12,10 @@ it with its own `CONTRIBUTING.md`.
 - Be kind. We follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 - By contributing, you agree your work is licensed under the same license as the
   repository you contribute to.
-- First-time contributors sign the [CLA](CLA.md) once, for every FerrLabs repository, by
-  commenting `I have read the CLA Document and I hereby sign the CLA` on their first pull
-  request. Maintainers and bots are exempt.
+
+## Contributor License Agreement
+
+Contributions are covered by the [CLA](https://github.com/FerrLabs/.github/blob/main/CLA.md). Sign it once on https://cla.ferrlabs.com, using the link in the `cla` check of your first pull request.
 
 ## Development workflow
 
