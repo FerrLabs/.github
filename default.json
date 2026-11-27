@@ -9,7 +9,6 @@
   "dependencyDashboard": {
     "enabled": false
   },
-  "commitBody": "Signed-off-by: ferrlabs-renovate[bot] <282300760+ferrlabs-renovate[bot]@users.noreply.github.com>",
   "rebaseWhen": "conflicted",
   "recreateWhen": "always",
   "minimumReleaseAge": "1 day",
