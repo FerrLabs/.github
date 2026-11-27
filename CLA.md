@@ -39,8 +39,6 @@ FerrLabs is not required to use, merge or keep any Contribution. You are not req
 
 ## 7. Signing
 
-You sign this agreement by posting the following comment on a pull request:
+You sign this agreement on the signing page, https://cla.ferrlabs.com, linked from the `cla` check of your pull request. You sign in with GitHub, enter your legal name and email and, optionally, your company, then accept the agreement.
 
-> I have read the CLA Document and I hereby sign the CLA
-
-Your GitHub username and the time of signing are recorded in a public file.
+Your GitHub account, legal name, email, optional company and the time of signing are recorded in the signature registry.
