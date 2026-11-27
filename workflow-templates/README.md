@@ -13,7 +13,6 @@ GitHub-discovered workflow templates. They appear under **Actions → New workfl
 | [`scorecard`](scorecard.yml) | OpenSSF Scorecard supply-chain risk score | All public repos and key private repos. |
 | [`security-scan`](security-scan.yml) | Reusable: gitleaks (secrets) + osv-scanner (CVE) + trufflehog (deep history) | Every repo — call the shared workflow from `FerrLabs/.github`. |
 | [`pr-title`](pr-title.yml) | Conventional Commits validation on PR titles | Every repo (mandatory because we squash-merge). |
-| [`dco`](dco.yml) | Reusable: every commit of a PR needs a `Signed-off-by` line | Deprecated, will be removed. The CLA is enforced by the ferrlabs-cla GitHub App (`cla` check), which needs no workflow. |
 | [`sbom-track`](sbom-track.yml) | CycloneDX SBOM via Trivy uploaded to Dependency-Track | Repos tracked for dependency CVEs. Needs `DTRACK_API_KEY`. |
 | [`release`](release.yml) | Auto-release on push to main with `FerrLabs/FerrFlow@v7` | Repos that ship semver releases. |
 | [`docker-publish`](docker-publish.yml) | Reusable: hadolint + multi-arch build + Trivy + cosign keyless + SBOM | Repos that publish a container image. |
