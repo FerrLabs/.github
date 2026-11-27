@@ -76,6 +76,10 @@ on:
         description: 'SonarQube projectBaseDir, when it differs from working-directory (e.g. multi-module repos analysed from the root). Defaults to working-directory.'
         type: string
         default: ''
+      sonar-exclusions:
+        description: 'Comma-separated sonar.exclusions globs forwarded to the scan (e.g. **/*_test.go to keep colocated tests out of the main source set). Empty keeps the scan workflow default list.'
+        type: string
+        default: ''
       coverage-upload-as:
         description: 'When set, upload this module coverage profile under this artifact name, for a single repo-level Sonar scan to merge. Use in monorepos instead of enable-sonar to avoid sub-projects.'
         type: string
@@ -295,6 +299,7 @@ jobs:
       runner: ${{ inputs.runner }}
       working-directory: ${{ inputs.sonar-base-dir || inputs.working-directory }}
       project-key: ${{ inputs.sonar-project-key }}
+      exclusions: ${{ inputs.sonar-exclusions != '' && inputs.sonar-exclusions || '**/node_modules/**,**/dist/**,**/build/**,**/target/**,**/coverage/**,**/.next/**,**/out/**,**/vendor/**,**/*.min.js,**/*.min.css' }}
       coverage-artifact: ${{ (inputs.enable-coverage && format('sonar-coverage-{0}', inputs.sonar-project-key || github.event.repository.name)) || '' }}
       args: ${{ inputs.enable-coverage && '-Dsonar.go.coverage.reportPaths=.sonarcov/coverage.out' || '' }}
     secrets:
