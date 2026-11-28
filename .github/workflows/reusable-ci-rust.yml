@@ -450,10 +450,17 @@ jobs:
       # harness args (everything after ` -- `) so only cargo-side flags reach
       # `--no-run`.
       - name: Pre-compile integration test binaries
-        if: inputs.integration-coverage-upload-as == ''
         env:
           INTEGRATION_ARGS: ${{ inputs.integration-args }}
-        run: cargo test --locked --no-run ${INTEGRATION_ARGS%% -- *}
+          COVERAGE_UPLOAD_AS: ${{ inputs.integration-coverage-upload-as }}
+        run: |
+          set -euo pipefail
+          if [ -n "$COVERAGE_UPLOAD_AS" ]; then
+            cargo llvm-cov show-env --export-prefix > "$RUNNER_TEMP/llvm-cov.env"
+            source "$RUNNER_TEMP/llvm-cov.env"
+            cargo llvm-cov clean --workspace
+          fi
+          cargo test --locked --no-run ${INTEGRATION_ARGS%% -- *}
       - name: Create per-run database
         env:
           DB_ENV_NAME: ${{ inputs.integration-db-env }}
@@ -482,13 +489,17 @@ jobs:
         run: |
           set -uo pipefail
           if [ -n "$COVERAGE_UPLOAD_AS" ]; then
-            RUNNER="cargo llvm-cov --locked --lcov --output-path lcov.info"
-          else
-            RUNNER="cargo test --locked"
+            source "$RUNNER_TEMP/llvm-cov.env"
           fi
           for attempt in 1 2 3; do
             echo "::group::Integration attempt ${attempt}/3"
-            if $RUNNER $INTEGRATION_ARGS; then echo "::endgroup::"; exit 0; fi
+            if cargo test --locked $INTEGRATION_ARGS; then
+              echo "::endgroup::"
+              if [ -n "$COVERAGE_UPLOAD_AS" ]; then
+                cargo llvm-cov report --lcov --output-path lcov.info
+              fi
+              exit 0
+            fi
             echo "::endgroup::"
             sleep 5
           done
@@ -513,7 +524,7 @@ jobs:
         if: inputs.integration-coverage-upload-as != ''
         # Side output: losing the upload must not fail the gate that produced it.
         continue-on-error: true
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ inputs.integration-coverage-upload-as }}
           path: ${{ runner.temp }}/sonarcov/${{ inputs.integration-coverage-upload-as }}.lcov
